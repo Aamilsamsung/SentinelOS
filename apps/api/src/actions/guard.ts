@@ -3,7 +3,7 @@ import { can } from "../security/rbac.js";
 import { transitionAction, type ActionState, type Transition } from "./state-machine.js";
 
 export type ActionActor = { userId: string; role: Role };
-export type ActionRecord = { requestedBy: string; status: ActionState };
+export type ActionRecord = { requestedBy: string; status: ActionState; verificationStatus?: "passed" | "failed" | "inconclusive" | null };
 
 export function authorizeActionTransition(
   actor: ActionActor,
@@ -17,6 +17,12 @@ export function authorizeActionTransition(
         code: "ACTION_APPROVAL_DENIED"
       });
     }
+  }
+  if (transition === "succeed" && action.verificationStatus !== "passed") {
+    throw Object.assign(new Error("Action cannot succeed before verification passes"), {
+      statusCode: 409,
+      code: "ACTION_VERIFICATION_REQUIRED"
+    });
   }
   return transitionAction(action.status, transition);
 }
