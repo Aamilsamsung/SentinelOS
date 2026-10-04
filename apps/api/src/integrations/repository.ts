@@ -29,3 +29,17 @@ export async function listIntegrations(database: Database, organizationId: strin
   );
   return result.rows;
 }
+
+
+export async function rotateIntegrationCredential(
+  database: Database, organizationId: string, integrationId: string,
+  ciphertext: string, keyVersion: string
+): Promise<boolean> {
+  const result = await database.query(
+    `UPDATE integrations SET credential_ciphertext=$3, credential_key_version=$4,
+            status='configured', last_error=NULL, updated_at=now()
+      WHERE organization_id=$1 AND id=$2`,
+    [organizationId, integrationId, ciphertext, keyVersion]
+  );
+  return result.rowCount === 1;
+}
