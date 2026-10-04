@@ -1,6 +1,27 @@
 import type { Database } from "../db/database.js";
 import { buildEvidenceBundle, type EvidenceItem } from "./evidence.js";
 
+const MAX_EVIDENCE_ITEMS = 300;
+const MAX_SUMMARY_CHARS = 2000;
+const MAX_TOTAL_CHARS = 120000;
+
+function boundedSummary(value: string) {
+  return value.length <= MAX_SUMMARY_CHARS ? value : `${value.slice(0, MAX_SUMMARY_CHARS)}…`;
+}
+
+function boundEvidence(items: EvidenceItem[]) {
+  const bounded: EvidenceItem[] = [];
+  let totalChars = 0;
+  for (const item of items) {
+    if (bounded.length >= MAX_EVIDENCE_ITEMS) break;
+    const summary = boundedSummary(item.summary);
+    if (totalChars + summary.length > MAX_TOTAL_CHARS) break;
+    totalChars += summary.length;
+    bounded.push({ ...item, summary });
+  }
+  return bounded;
+}
+
 export async function collectIncidentEvidence(database: Database, organizationId: string, incidentId: string) {
   const incidentResult = await database.query(
     `SELECT id, detected_at FROM incidents WHERE organization_id = $1 AND id = $2`,
@@ -31,17 +52,17 @@ export async function collectIncidentEvidence(database: Database, organizationId
   const items: EvidenceItem[] = [
     ...events.rows.map(row => ({
       id: `event:${row.id}`, kind: "event" as const, observedAt: row.occurred_at.toISOString(),
-      summary: `${row.event_type} from ${row.source}`, source: row.source, confidence: 1
+      summary: boundedSummary(`${row.event_type} from ${row.source}`), source: row.source, confidence: 1
     })),
     ...logs.rows.map(row => ({
       id: `log:${row.id}`, kind: "log" as const, observedAt: row.occurred_at.toISOString(),
-      summary: `[${row.level}] ${row.service}: ${row.message}`, source: row.service, confidence: 1
+      summary: boundedSummary(`[${row.level}] ${row.service}: ${row.message}`), source: row.service, confidence: 1
     })),
     ...metrics.rows.map(row => ({
       id: `metric:${row.id}`, kind: "metric" as const, observedAt: row.occurred_at.toISOString(),
-      summary: `${row.service} ${row.metric_name}=${row.value}${row.unit ? ` ${row.unit}` : ""}`,
+      summary: boundedSummary(`${row.service} ${row.metric_name}=${row.value}${row.unit ? ` ${row.unit}` : ""}`),
       source: row.service, confidence: 1
     }))
   ];
-  return buildEvidenceBundle(incidentId, items);
+  return buildEvidenceBundle(incidentId, boundEvidence(items));
 }
