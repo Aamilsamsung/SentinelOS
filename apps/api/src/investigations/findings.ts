@@ -16,8 +16,8 @@ export function validateFindings(
 ): Finding[] {
   const parsed = z.array(findingSchema).max(100).parse(input);
   for (const finding of parsed) {
-    if (finding.type !== "recommendation" && finding.evidenceIds.length === 0) {
-      throw new Error("Observations and hypotheses require evidence");
+    if (finding.evidenceIds.length === 0) {
+      throw new Error("All investigation findings require evidence");
     }
     for (const id of finding.evidenceIds) {
       if (!allowedEvidenceIds.has(id)) {
