@@ -7,6 +7,7 @@ import { authorize } from "../security/context.js";
 import { writeAuditEvent } from "../audit/repository.js";
 import { authorizeActionTransition } from "./guard.js";
 import { getActionForUpdate, persistActionTransition } from "./repository.js";
+import { listOrganizationActions } from "./list.js";
 import type { Transition } from "./state-machine.js";
 
 const transitionInput = z.object({
@@ -19,6 +20,12 @@ function header(value: string | string[] | undefined) {
 }
 
 export async function registerActionRoutes(app: FastifyInstance, database: Database) {
+  app.get("/v1/actions", async request => {
+    const organizationId = header(request.headers["x-organization-id"]);
+    const context = await authenticateRequest(database, request.headers.authorization, organizationId);
+    authorize(context, "incident:read", context.organizationId);
+    return { data: await listOrganizationActions(database, context.organizationId) };
+  });
   app.post("/v1/actions/:actionId/transitions", async (request, reply) => {
     const organizationId = header(request.headers["x-organization-id"]);
     const context = await authenticateRequest(database, request.headers.authorization, organizationId);
