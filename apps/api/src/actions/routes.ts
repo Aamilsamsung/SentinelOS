@@ -34,6 +34,8 @@ export async function registerActionRoutes(app: FastifyInstance, database: Datab
 
     if (input.transition === "approve" || input.transition === "reject") {
       authorize(context, "action:approve", context.organizationId);
+    } else if (input.transition === "execute" || input.transition === "succeed" || input.transition === "fail") {
+      authorize(context, "action:execute", context.organizationId);
     } else {
       authorize(context, "action:request", context.organizationId);
     }
