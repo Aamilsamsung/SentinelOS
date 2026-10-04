@@ -6,10 +6,19 @@ import { authenticateRequest } from "../security/authenticate.js";
 import { authorize } from "../security/context.js";
 import { writeAuditEvent } from "../audit/repository.js";
 import { authorizeActionTransition } from "./guard.js";
-import { getActionForUpdate, persistActionTransition } from "./repository.js";
+import { getActionForUpdate, persistActionTransition, persistActionVerification } from "./repository.js";
 import { listOrganizationActions } from "./list.js";
 import type { Transition } from "./state-machine.js";
 import { validateExecutableAction } from "./catalog.js";
+import { evaluateVerification } from "./verification.js";
+
+const verificationInput = z.object({
+  checks: z.array(z.object({
+    name: z.string().trim().min(1).max(200),
+    passed: z.boolean(),
+    detail: z.string().trim().min(1).max(2000)
+  }).strict()).min(1).max(20)
+}).strict();
 
 const transitionInput = z.object({
   transition: z.enum(["approve", "reject", "execute", "succeed", "fail"]),
@@ -27,6 +36,31 @@ export async function registerActionRoutes(app: FastifyInstance, database: Datab
     authorize(context, "incident:read", context.organizationId);
     return { data: await listOrganizationActions(database, context.organizationId) };
   });
+  app.post("/v1/actions/:actionId/verification", async (request, reply) => {
+    const organizationId = header(request.headers["x-organization-id"]);
+    const context = await authenticateRequest(database, request.headers.authorization, organizationId);
+    authorize(context, "action:execute", context.organizationId);
+    const actionId = (request.params as { actionId: string }).actionId;
+    const input = verificationInput.parse(request.body);
+    const verification = evaluateVerification(input.checks);
+
+    await withTransaction(database, async client => {
+      const action = await getActionForUpdate(client, context.organizationId, actionId);
+      if (!action) throw Object.assign(new Error("Action not found"), { statusCode: 404, code: "ACTION_NOT_FOUND" });
+      await persistActionVerification(client, context.organizationId, action.id, verification.status, verification.detail);
+      await writeAuditEvent(client, {
+        organizationId: context.organizationId,
+        actorUserId: context.userId,
+        action: "remediation.verified",
+        resourceType: "remediation_action",
+        resourceId: action.id,
+        requestId: request.id,
+        metadata: { status: verification.status, checkCount: input.checks.length }
+      });
+    });
+    return reply.code(200).send({ data: verification });
+  });
+
   app.post("/v1/actions/:actionId/transitions", async (request, reply) => {
     const organizationId = header(request.headers["x-organization-id"]);
     const context = await authenticateRequest(database, request.headers.authorization, organizationId);
