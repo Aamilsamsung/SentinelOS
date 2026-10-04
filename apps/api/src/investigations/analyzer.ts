@@ -13,12 +13,17 @@ export class HttpInvestigationAnalyzer implements InvestigationAnalyzer {
   ) {}
 
   async analyze(bundle: EvidenceBundle): Promise<unknown> {
-    const response = await fetch(this.endpoint, {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+    let response: Response;
+    try {
+      response = await fetch(this.endpoint, {
       method: "POST",
       headers: {
         authorization: `Bearer ${this.apiKey}`,
         "content-type": "application/json"
       },
+      signal: controller.signal,
       body: JSON.stringify({
         prompt: investigationPrompt(bundle),
         responseFormat: {
@@ -26,7 +31,13 @@ export class HttpInvestigationAnalyzer implements InvestigationAnalyzer {
           items: ["observation", "hypothesis", "recommendation"]
         }
       })
-    });
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") throw new Error("Investigation analyzer timed out");
+      throw new Error("Investigation analyzer request failed");
+    } finally {
+      clearTimeout(timeout);
+    }
     if (!response.ok) throw new Error(`Investigation analyzer failed with status ${response.status}`);
     return response.json();
   }
