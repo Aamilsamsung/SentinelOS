@@ -1,6 +1,8 @@
 import Fastify from "fastify";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import type { Database } from "./db/database.js";
+import { checkDatabase } from "./db/database.js";
 
 type HttpLikeError = Error & { statusCode?: number; code?: string };
 
@@ -8,7 +10,11 @@ function normalizeError(error: unknown): HttpLikeError {
   return error instanceof Error ? error as HttpLikeError : new Error("Unknown error");
 }
 
-export async function buildApp() {
+export type AppDependencies = {
+  database?: Database;
+};
+
+export async function buildApp(dependencies: AppDependencies = {}) {
   const app = Fastify({
     logger: true,
     trustProxy: true,
@@ -24,17 +30,29 @@ export async function buildApp() {
   }));
 
   app.get("/ready", async (_request, reply) => {
-    // Dependency checks are added as persistence/queue services are introduced.
-    return reply.code(200).send({ status: "ready" });
+    if (!dependencies.database) {
+      return reply.code(503).send({
+        status: "not_ready",
+        dependencies: { database: "not_configured" }
+      });
+    }
+    try {
+      await checkDatabase(dependencies.database);
+      return reply.code(200).send({
+        status: "ready",
+        dependencies: { database: "ok" }
+      });
+    } catch {
+      return reply.code(503).send({
+        status: "not_ready",
+        dependencies: { database: "unavailable" }
+      });
+    }
   });
 
   app.setNotFoundHandler(async (request, reply) => {
     return reply.code(404).send({
-      error: {
-        code: "NOT_FOUND",
-        message: "Route not found",
-        requestId: request.id
-      }
+      error: { code: "NOT_FOUND", message: "Route not found", requestId: request.id }
     });
   });
 
