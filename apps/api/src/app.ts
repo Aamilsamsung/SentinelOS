@@ -6,6 +6,7 @@ import { checkDatabase } from "./db/database.js";
 import { registerIncidentRoutes } from "./incidents/routes.js";
 import { registerEventRoutes } from "./events/routes.js";
 import { registerActionRoutes } from "./actions/routes.js";
+import { registerInvestigationRoutes } from "./investigations/routes.js";
 
 type HttpLikeError = Error & { statusCode?: number; code?: string };
 
@@ -31,6 +32,7 @@ export async function buildApp(dependencies: AppDependencies = {}) {
     await registerIncidentRoutes(app, dependencies.database);
     await registerEventRoutes(app, dependencies.database);
     await registerActionRoutes(app, dependencies.database);
+    await registerInvestigationRoutes(app, dependencies.database);
   }
 
   app.get("/health", async () => ({
