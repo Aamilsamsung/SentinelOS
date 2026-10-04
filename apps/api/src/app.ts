@@ -10,6 +10,7 @@ import { registerInvestigationRoutes } from "./investigations/routes.js";
 import { registerNotificationRoutes } from "./notifications/routes.js";
 import { registerKnowledgeRoutes } from "./knowledge/routes.js";
 import { registerIntegrationRoutes } from "./integrations/routes.js";
+import { registerDashboardRoutes } from "./dashboard/routes.js";
 
 type HttpLikeError = Error & { statusCode?: number; code?: string };
 
@@ -39,6 +40,7 @@ export async function buildApp(dependencies: AppDependencies = {}) {
     await registerNotificationRoutes(app, dependencies.database);
     await registerKnowledgeRoutes(app, dependencies.database);
     await registerIntegrationRoutes(app, dependencies.database);
+    await registerDashboardRoutes(app, dependencies.database);
   }
 
   app.get("/health", async () => ({
