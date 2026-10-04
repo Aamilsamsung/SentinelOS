@@ -5,7 +5,7 @@ import { ingestEvent } from "./repository.js";
 import { assertFreshTimestamp, verifyWebhookSignature } from "./signature.js";
 
 export async function registerEventRoutes(app: FastifyInstance, database: Database) {
-  app.post("/v1/webhooks/events/:organizationId", async (request, reply) => {
+  app.post("/v1/webhooks/events/:organizationId", { config: { rawBody: true } }, async (request, reply) => {
     const organizationId = (request.params as { organizationId: string }).organizationId;
     const timestamp = request.headers["x-sentinel-timestamp"];
     const signature = request.headers["x-sentinel-signature"];
@@ -19,7 +19,11 @@ export async function registerEventRoutes(app: FastifyInstance, database: Databa
     }
 
     assertFreshTimestamp(timestamp);
-    const body = typeof request.body === "string" ? request.body : JSON.stringify(request.body ?? {});
+    const body = (request as typeof request & { rawBody?: string }).rawBody;
+    if (typeof body !== "string") {
+      request.log.error("Raw webhook body was not captured");
+      return reply.code(500).send({ error: { code: "WEBHOOK_RAW_BODY_UNAVAILABLE", message: "Webhook verification unavailable", requestId: request.id } });
+    }
     if (!verifyWebhookSignature(secret, timestamp, body, signature)) {
       return reply.code(401).send({ error: { code: "INVALID_WEBHOOK_SIGNATURE", message: "Invalid webhook signature", requestId: request.id } });
     }
