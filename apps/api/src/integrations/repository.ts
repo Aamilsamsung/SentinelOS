@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import type { Database } from "../db/database.js";
 import type { IntegrationInput } from "./model.js";
 
@@ -32,7 +33,7 @@ export async function listIntegrations(database: Database, organizationId: strin
 
 
 export async function rotateIntegrationCredential(
-  database: Database, organizationId: string, integrationId: string,
+  database: Database | PoolClient, organizationId: string, integrationId: string,
   ciphertext: string, keyVersion: string
 ): Promise<boolean> {
   const result = await database.query(
