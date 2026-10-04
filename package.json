@@ -1,0 +1,14 @@
+{
+  "name": "sentinelos",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Security-first AI reliability and investigation platform",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "npm run dev --workspace=@sentinelos/api",
+    "build": "npm run build --workspace=@sentinelos/api",
+    "start": "npm run start --workspace=@sentinelos/api",
+    "test": "npm run test --workspace=@sentinelos/api"
+  },
+  "engines": {"node": ">=22"}
+}
