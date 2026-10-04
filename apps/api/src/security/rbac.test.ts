@@ -21,3 +21,11 @@ describe("RBAC", () => {
     expect(() => assertSameOrganization("org-a", "org-a")).not.toThrow();
   });
 });
+
+
+it("separates remediation requests from execution", () => {
+  expect(can("responder", "action:request")).toBe(true);
+  expect(can("responder", "action:execute")).toBe(false);
+  expect(can("admin", "action:execute")).toBe(true);
+  expect(can("owner", "action:execute")).toBe(true);
+});
