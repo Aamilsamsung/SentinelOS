@@ -7,13 +7,23 @@ export async function startInvestigation(
   incidentId: string,
   userId: string
 ): Promise<string> {
-  const result = await client.query(
-    `INSERT INTO investigations (organization_id, incident_id, status, started_by, started_at)
-     VALUES ($1, $2, 'running', $3, now())
-     RETURNING id`,
-    [organizationId, incidentId, userId]
-  );
-  return result.rows[0].id;
+  try {
+    const result = await client.query(
+      `INSERT INTO investigations (organization_id, incident_id, status, started_by, started_at)
+       VALUES ($1, $2, 'running', $3, now())
+       RETURNING id`,
+      [organizationId, incidentId, userId]
+    );
+    return result.rows[0].id;
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") {
+      throw Object.assign(new Error("An investigation is already active for this incident"), {
+        statusCode: 409,
+        code: "INVESTIGATION_ALREADY_ACTIVE"
+      });
+    }
+    throw error;
+  }
 }
 
 export async function persistFindings(
