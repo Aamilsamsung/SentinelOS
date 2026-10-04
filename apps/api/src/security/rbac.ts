@@ -7,6 +7,7 @@ export const permissions = [
   "investigation:run",
   "action:request",
   "action:approve",
+  "action:execute",
   "integration:manage",
   "member:manage",
   "audit:read"
@@ -18,7 +19,7 @@ const grants: Record<Role, ReadonlySet<Permission>> = {
   responder: new Set(["incident:read", "incident:write", "investigation:run", "action:request"]),
   admin: new Set([
     "incident:read", "incident:write", "investigation:run", "action:request",
-    "action:approve", "integration:manage", "member:manage", "audit:read"
+    "action:approve", "action:execute", "integration:manage", "member:manage", "audit:read"
   ]),
   owner: new Set(permissions)
 };
