@@ -6,6 +6,7 @@ export type StoredAction = {
   organizationId: string;
   requestedBy: string;
   status: ActionState;
+  verificationStatus: "passed" | "failed" | "inconclusive" | null;
 };
 
 export async function getActionForUpdate(
@@ -14,7 +15,7 @@ export async function getActionForUpdate(
   actionId: string
 ): Promise<StoredAction | null> {
   const result = await client.query(
-    `SELECT id, organization_id, requested_by, status
+    `SELECT id, organization_id, requested_by, status, verification_status
        FROM remediation_actions
       WHERE organization_id = $1 AND id = $2
       FOR UPDATE`,
@@ -25,7 +26,8 @@ export async function getActionForUpdate(
     id: row.id,
     organizationId: row.organization_id,
     requestedBy: row.requested_by,
-    status: row.status
+    status: row.status,
+    verificationStatus: row.verification_status
   } : null;
 }
 
@@ -38,7 +40,7 @@ export async function persistActionTransition(
   actorUserId: string,
   reason?: string
 ): Promise<void> {
-  await client.query(
+  const update = await client.query(
     `UPDATE remediation_actions
         SET status = $3,
             approved_by = CASE WHEN $3 = 'approved' THEN $4 ELSE approved_by END,
@@ -47,6 +49,9 @@ export async function persistActionTransition(
       WHERE organization_id = $1 AND id = $2 AND status = $5`,
     [organizationId, actionId, toStatus, actorUserId, fromStatus]
   );
+  if (update.rowCount !== 1) {
+    throw Object.assign(new Error("Action changed before transition could be persisted"), { statusCode: 409, code: "ACTION_TRANSITION_CONFLICT" });
+  }
   await client.query(
     `INSERT INTO action_transitions
       (organization_id, action_id, from_status, to_status, actor_user_id, reason)
