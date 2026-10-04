@@ -26,4 +26,13 @@ describe("integration credentials", () => {
       provider: "github", name: "production", configuration: { apiToken: "do-not-store-here" }
     })).toThrow("credential endpoint");
   });
+
+  it("rejects secrets nested inside objects and arrays", () => {
+    expect(() => integrationInput.parse({
+      provider: "github", name: "nested", configuration: { auth: { apiToken: "hidden" } }
+    })).toThrow("credential endpoint");
+    expect(() => integrationInput.parse({
+      provider: "sentry", name: "array", configuration: { endpoints: [{ private_key: "hidden" }] }
+    })).toThrow("credential endpoint");
+  });
 });
