@@ -27,3 +27,14 @@ describe("structured investigation findings", () => {
     }], allowed)).toThrow("require evidence");
   });
 });
+
+
+it("requires recommendations to cite real evidence", () => {
+  expect(() => validateFindings([{
+    type: "recommendation",
+    title: "Restart service",
+    detail: "Potential remediation",
+    confidence: 0.7,
+    evidenceIds: []
+  }], new Set(["log:1"]))).toThrow("All investigation findings require evidence");
+});
