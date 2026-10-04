@@ -17,8 +17,8 @@ export async function createRecommendedActions(
         (organization_id, incident_id, action_type, rationale, parameters, status, requested_by)
        VALUES ($1,$2,$3,$4,$5::jsonb,'requested',$6)
        RETURNING id`,
-      [organizationId, incidentId, recommendation.title, recommendation.rationale,
-       JSON.stringify({ confidence: recommendation.confidence, evidenceIds: recommendation.evidenceIds }),
+      [organizationId, incidentId, "ai_recommendation", recommendation.rationale,
+       JSON.stringify({ title: recommendation.title, confidence: recommendation.confidence, evidenceIds: recommendation.evidenceIds }),
        requestedBy]
     );
     ids.push(result.rows[0].id);
