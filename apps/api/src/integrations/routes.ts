@@ -3,10 +3,23 @@ import type { Database } from "../db/database.js";
 import { authenticateRequest } from "../security/authenticate.js";
 import { authorize } from "../security/context.js";
 import { integrationInput } from "./model.js";
-import { listIntegrations, upsertIntegration } from "./repository.js";
+import { listIntegrations, rotateIntegrationCredential, upsertIntegration } from "./repository.js";
+import { encryptCredential } from "./credentials.js";
+import { z } from "zod";
 
 function header(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+
+  app.put("/v1/integrations/:integrationId/credential", async (request, reply) => {
+    const organizationId = header(request.headers["x-organization-id"]);
+    const context = await authenticateRequest(database, request.headers.authorization, organizationId);
+    authorize(context, "integration:manage", context.organizationId);
+    const integrationId = (request.params as { integrationId: string }).integrationId;
+    const input = z.object({ credential: z.string().min(1).max(20000) }).strict().parse(request.body);
+    const updated = await rotateIntegrationCredential(database, context.organizationId, integrationId, encryptCredential(input.credential), "v1");
+    if (!updated) return reply.code(404).send({ error: { code: "INTEGRATION_NOT_FOUND", message: "Integration not found", requestId: request.id } });
+    return reply.code(204).send();
+  });
 }
 
 export async function registerIntegrationRoutes(app: FastifyInstance, database: Database) {
