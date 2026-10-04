@@ -1,9 +1,9 @@
-import { fetchDashboardSummary } from "../lib/api";
+import { fetchActivity, fetchDashboardSummary } from "../lib/api";
 
 const sections = ["Command Center","Incidents","Investigations","Actions","Knowledge","Integrations"];
 
 export default async function CommandCenter() {
-  const summary = await fetchDashboardSummary();
+  const [summary, activity] = await Promise.all([fetchDashboardSummary(), fetchActivity()]);
   const cards = [
     ["Open incidents", summary?.openIncidents, "Unresolved incidents"],
     ["Investigations", summary?.activeInvestigations, "Queued or running"],
@@ -21,7 +21,7 @@ export default async function CommandCenter() {
       <section className="content">
         <header><div><div className="eyebrow">OPERATIONS</div><h2>System overview</h2><p>{summary ? "Live organization-scoped operational summary." : "Configure the SentinelOS API session to load operational data."}</p></div><button disabled>Run investigation</button></header>
         <div className="grid">{cards.map(([label,value,detail]) => <article key={label}><label>{label}</label><strong>{value ?? "—"}</strong><small>{summary ? detail : "Waiting for API"}</small></article>)}</div>
-        <section className="panel"><div><div className="eyebrow">ACTIVITY</div><h3>Operational timeline</h3></div><div className="empty">{summary ? "Activity timeline will stream audited operational events here." : "Connect to the SentinelOS API to load incidents, evidence, investigations, and remediation activity."}</div></section>
+        <section className="panel"><div><div className="eyebrow">ACTIVITY</div><h3>Operational timeline</h3></div><div className="activity">{activity?.length ? activity.slice(0, 8).map(item => <div className="activityRow" key={item.id}><div><strong>{item.action}</strong><small>{item.resource_type}{item.resource_id ? ` · ${item.resource_id}` : ""}</small></div><time>{new Date(item.created_at).toLocaleString()}</time></div>) : <div className="empty">{summary ? "No audited activity is available for this account." : "Connect to the SentinelOS API to load incidents, evidence, investigations, and remediation activity."}</div>}</div></section>
       </section>
     </main>
   );
