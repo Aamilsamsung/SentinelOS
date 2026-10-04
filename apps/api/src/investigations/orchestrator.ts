@@ -5,6 +5,7 @@ import { collectIncidentEvidence } from "./collector.js";
 import { validateFindings } from "./findings.js";
 import { completeInvestigation, persistFindings } from "./repository.js";
 import type { InvestigationAnalyzer } from "./analyzer.js";
+import { createRecommendedActions } from "../actions/from-findings.js";
 
 export async function runInvestigation(
   database: Database,
@@ -26,6 +27,7 @@ export async function runInvestigation(
 
   await withTransaction(database, async client => {
     await persistFindings(client, organizationId, investigationId, findings);
+    const actionIds = await createRecommendedActions(client, organizationId, incidentId, actorUserId, findings);
     await completeInvestigation(client, organizationId, investigationId);
     await writeAuditEvent(client, {
       organizationId,
@@ -33,7 +35,7 @@ export async function runInvestigation(
       action: "investigation.completed",
       resourceType: "investigation",
       resourceId: investigationId,
-      metadata: { incidentId, findingCount: findings.length, evidenceCount: bundle.items.length }
+      metadata: { incidentId, findingCount: findings.length, evidenceCount: bundle.items.length, recommendedActionCount: actionIds.length }
     });
   });
   return { findings, evidenceCount: bundle.items.length };
