@@ -83,3 +83,32 @@ export async function fetchIncidents(): Promise<Incident[] | null> {
   const payload = await response.json() as { data: Incident[] };
   return payload.data;
 }
+
+
+async function fetchProtected<T>(path: string): Promise<T | null> {
+  const config = apiConfig();
+  if (!config) return null;
+  const response = await fetch(`${config.baseUrl}${path}`, {
+    headers: { authorization: `Bearer ${config.token}`, "x-organization-id": config.organizationId },
+    cache: "no-store"
+  });
+  if (!response.ok) return null;
+  const payload = await response.json() as { data: T };
+  return payload.data;
+}
+
+export type InvestigationListItem = {
+  id: string; incident_id: string; status: string; conclusion: string | null;
+  started_at: string | null; completed_at: string | null; created_at: string;
+  incident_title: string; incident_severity: string;
+};
+
+export type ActionListItem = {
+  id: string; incident_id: string; action_type: string; rationale: string; status: string;
+  requested_by: string | null; approved_by: string | null; requested_at: string;
+  approved_at: string | null; executed_at: string | null;
+  verification_status: string | null; verification_detail: string | null; incident_title: string;
+};
+
+export const fetchInvestigations = () => fetchProtected<InvestigationListItem[]>("/v1/investigations");
+export const fetchActions = () => fetchProtected<ActionListItem[]>("/v1/actions");
