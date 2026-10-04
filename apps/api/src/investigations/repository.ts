@@ -45,3 +45,18 @@ export async function completeInvestigation(
     [organizationId, investigationId]
   );
 }
+
+
+export async function failInvestigation(
+  client: PoolClient,
+  organizationId: string,
+  investigationId: string,
+  reason: string
+): Promise<void> {
+  await client.query(
+    `UPDATE investigations
+        SET status = 'failed', completed_at = now(), failure_reason = $3
+      WHERE organization_id = $1 AND id = $2 AND status = 'running'`,
+    [organizationId, investigationId, reason.slice(0, 2000)]
+  );
+}
