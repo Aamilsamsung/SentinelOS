@@ -18,3 +18,18 @@ describe("remediation transition authorization", () => {
     )).toBe("approved");
   });
 });
+
+
+it("does not allow success before verification passes", () => {
+  expect(() => authorizeActionTransition(
+    { userId: "responder-1", role: "responder" },
+    { requestedBy: "requester", status: "executing", verificationStatus: "inconclusive" },
+    "succeed"
+  )).toThrow("verification passes");
+
+  expect(authorizeActionTransition(
+    { userId: "responder-1", role: "responder" },
+    { requestedBy: "requester", status: "executing", verificationStatus: "passed" },
+    "succeed"
+  )).toBe("succeeded");
+});
