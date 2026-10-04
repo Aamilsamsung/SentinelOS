@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { fetchActivity, fetchDashboardSummary } from "../lib/api";
 
 const sections = ["Command Center","Incidents","Investigations","Actions","Knowledge","Integrations"];
@@ -15,7 +16,7 @@ export default async function CommandCenter() {
     <main className="shell">
       <aside className="sidebar">
         <div><div className="eyebrow">SENTINELOS</div><h1>Command Center</h1></div>
-        <nav>{sections.map((section, index) => <div className={index === 0 ? "nav active" : "nav"} key={section}>{section}</div>)}</nav>
+        <nav>{sections.map((section, index) => section === "Incidents" ? <Link className="nav" href="/incidents" key={section}>{section}</Link> : <div className={index === 0 ? "nav active" : "nav"} key={section}>{section}</div>)}</nav>
         <div className="status"><span />{summary ? "Operational data connected" : "API connection required"}</div>
       </aside>
       <section className="content">
