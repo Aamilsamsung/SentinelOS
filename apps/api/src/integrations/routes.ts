@@ -6,6 +6,8 @@ import { authorize } from "../security/context.js";
 import { integrationInput } from "./model.js";
 import { listIntegrations, rotateIntegrationCredential, upsertIntegration } from "./repository.js";
 import { encryptCredential } from "./credentials.js";
+import { withTransaction } from "../db/transaction.js";
+import { writeAuditEvent } from "../audit/repository.js";
 
 const credentialInput = z.object({ credential: z.string().min(1).max(20000) }).strict();
 
@@ -36,9 +38,22 @@ export async function registerIntegrationRoutes(app: FastifyInstance, database: 
     authorize(context, "integration:manage", context.organizationId);
     const integrationId = (request.params as { integrationId: string }).integrationId;
     const input = credentialInput.parse(request.body);
-    const updated = await rotateIntegrationCredential(
-      database, context.organizationId, integrationId, encryptCredential(input.credential), "v1"
-    );
+    const updated = await withTransaction(database, async client => {
+      const rotated = await rotateIntegrationCredential(
+        client, context.organizationId, integrationId, encryptCredential(input.credential), "v1"
+      );
+      if (!rotated) return false;
+      await writeAuditEvent(client, {
+        organizationId: context.organizationId,
+        actorUserId: context.userId,
+        action: "integration.credential_rotated",
+        resourceType: "integration",
+        resourceId: integrationId,
+        requestId: request.id,
+        metadata: { keyVersion: "v1" }
+      });
+      return true;
+    });
     if (!updated) {
       return reply.code(404).send({
         error: { code: "INTEGRATION_NOT_FOUND", message: "Integration not found", requestId: request.id }
