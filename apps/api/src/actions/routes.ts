@@ -45,7 +45,7 @@ export async function registerActionRoutes(app: FastifyInstance, database: Datab
       }
       const next = authorizeActionTransition(
         { userId: context.userId, role: context.role },
-        { requestedBy: action.requestedBy, status: action.status },
+        { requestedBy: action.requestedBy, status: action.status, verificationStatus: action.verificationStatus },
         input.transition as Transition
       );
       await persistActionTransition(
