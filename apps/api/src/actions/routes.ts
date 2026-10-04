@@ -9,6 +9,7 @@ import { authorizeActionTransition } from "./guard.js";
 import { getActionForUpdate, persistActionTransition } from "./repository.js";
 import { listOrganizationActions } from "./list.js";
 import type { Transition } from "./state-machine.js";
+import { validateExecutableAction } from "./catalog.js";
 
 const transitionInput = z.object({
   transition: z.enum(["approve", "reject", "execute", "succeed", "fail"]),
@@ -45,6 +46,7 @@ export async function registerActionRoutes(app: FastifyInstance, database: Datab
       if (!action) {
         throw Object.assign(new Error("Action not found"), { statusCode: 404, code: "ACTION_NOT_FOUND" });
       }
+      if (input.transition === "execute") validateExecutableAction(action.actionType, action.parameters);
       const next = authorizeActionTransition(
         { userId: context.userId, role: context.role },
         { requestedBy: action.requestedBy, status: action.status, verificationStatus: action.verificationStatus },
