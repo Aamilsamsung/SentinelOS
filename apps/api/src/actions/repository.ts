@@ -63,3 +63,27 @@ export async function persistActionTransition(
     [organizationId, actionId, fromStatus, toStatus, actorUserId, reason ?? null]
   );
 }
+
+
+export async function persistActionVerification(
+  client: PoolClient,
+  organizationId: string,
+  actionId: string,
+  status: "passed" | "failed" | "inconclusive",
+  detail: string
+): Promise<void> {
+  const result = await client.query(
+    `UPDATE remediation_actions
+        SET verification_status = $3,
+            verification_detail = $4,
+            verified_at = now()
+      WHERE organization_id = $1 AND id = $2 AND status = 'executing'`,
+    [organizationId, actionId, status, detail]
+  );
+  if (result.rowCount !== 1) {
+    throw Object.assign(new Error("Action is not available for verification"), {
+      statusCode: 409,
+      code: "ACTION_NOT_VERIFIABLE"
+    });
+  }
+}
