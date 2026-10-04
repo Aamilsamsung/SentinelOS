@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import rawBody from "fastify-raw-body";
 import type { Database } from "./db/database.js";
 import { checkDatabase } from "./db/database.js";
 import { registerIncidentRoutes } from "./incidents/routes.js";
@@ -32,6 +33,7 @@ export async function buildApp(dependencies: AppDependencies = {}) {
 
   await app.register(helmet);
   await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+  await app.register(rawBody, { field: "rawBody", global: false, encoding: "utf8", runFirst: true });
 
   if (dependencies.database) {
     await registerIncidentRoutes(app, dependencies.database);
