@@ -3,6 +3,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import type { Database } from "./db/database.js";
 import { checkDatabase } from "./db/database.js";
+import { registerIncidentRoutes } from "./incidents/routes.js";
 
 type HttpLikeError = Error & { statusCode?: number; code?: string };
 
@@ -23,6 +24,10 @@ export async function buildApp(dependencies: AppDependencies = {}) {
 
   await app.register(helmet);
   await app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+
+  if (dependencies.database) {
+    await registerIncidentRoutes(app, dependencies.database);
+  }
 
   app.get("/health", async () => ({
     status: "ok",
