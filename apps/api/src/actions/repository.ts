@@ -7,6 +7,8 @@ export type StoredAction = {
   requestedBy: string;
   status: ActionState;
   verificationStatus: "passed" | "failed" | "inconclusive" | null;
+  actionType: string;
+  parameters: unknown;
 };
 
 export async function getActionForUpdate(
@@ -15,7 +17,7 @@ export async function getActionForUpdate(
   actionId: string
 ): Promise<StoredAction | null> {
   const result = await client.query(
-    `SELECT id, organization_id, requested_by, status, verification_status
+    `SELECT id, organization_id, requested_by, status, verification_status, action_type, parameters
        FROM remediation_actions
       WHERE organization_id = $1 AND id = $2
       FOR UPDATE`,
@@ -27,7 +29,9 @@ export async function getActionForUpdate(
     organizationId: row.organization_id,
     requestedBy: row.requested_by,
     status: row.status,
-    verificationStatus: row.verification_status
+    verificationStatus: row.verification_status,
+    actionType: row.action_type,
+    parameters: row.parameters
   } : null;
 }
 
