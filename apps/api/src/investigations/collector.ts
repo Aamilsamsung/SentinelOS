@@ -32,7 +32,7 @@ export async function collectIncidentEvidence(database: Database, organizationId
   const from = new Date(detectedAt.getTime() - 30 * 60_000);
   const to = new Date(detectedAt.getTime() + 30 * 60_000);
 
-  const [events, logs, metrics] = await Promise.all([
+  const [events, logs, metrics, deployments] = await Promise.all([
     database.query(
       `SELECT id, event_type, source, payload, occurred_at FROM incident_events
         WHERE organization_id=$1 AND incident_id=$2 ORDER BY occurred_at ASC LIMIT 200`,
@@ -46,6 +46,14 @@ export async function collectIncidentEvidence(database: Database, organizationId
       `SELECT id, service, metric_name, value, unit, occurred_at FROM metric_points
         WHERE organization_id=$1 AND occurred_at BETWEEN $2 AND $3
         ORDER BY occurred_at ASC LIMIT 200`,
+      [organizationId, from, to]),
+    database.query(
+      `SELECT id, event_type, service, severity, title, attributes, occurred_at FROM observability_events
+        WHERE organization_id=$1
+          AND source='github'
+          AND event_type IN ('deployment.created','deployment.status')
+          AND occurred_at BETWEEN $2 AND $3
+        ORDER BY occurred_at ASC LIMIT 100`,
       [organizationId, from, to])
   ]);
 
@@ -62,7 +70,19 @@ export async function collectIncidentEvidence(database: Database, organizationId
       id: `metric:${row.id}`, kind: "metric" as const, observedAt: row.occurred_at.toISOString(),
       summary: boundedSummary(`${row.service} ${row.metric_name}=${row.value}${row.unit ? ` ${row.unit}` : ""}`),
       source: row.service, confidence: 1
-    }))
+    })),
+    ...deployments.rows.map(row => {
+      const attributes = (row.attributes ?? {}) as Record<string, unknown>;
+      const sha = typeof attributes.sha === "string" ? attributes.sha : undefined;
+      const environment = typeof attributes.environment === "string" ? attributes.environment : undefined;
+      const state = typeof attributes.state === "string" ? attributes.state : undefined;
+      const details = [state, environment, sha ? `commit ${sha.slice(0, 12)}` : undefined].filter(Boolean).join(", ");
+      return {
+        id: `deployment:${row.id}`, kind: "deployment" as const, observedAt: row.occurred_at.toISOString(),
+        summary: boundedSummary(details ? `${row.title} (${details})` : row.title),
+        source: row.service ?? "github", confidence: 1
+      };
+    })
   ];
   return buildEvidenceBundle(incidentId, boundEvidence(items));
 }
