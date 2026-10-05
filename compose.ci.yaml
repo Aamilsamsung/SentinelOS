@@ -1,7 +1,10 @@
 services:
   postgres:
-    ports: []
+    ports:
+      - "55432:5432"
   redis:
-    ports: []
+    ports:
+      - "56379:6379"
   api:
-    ports: []
+    ports:
+      - "53001:3001"
