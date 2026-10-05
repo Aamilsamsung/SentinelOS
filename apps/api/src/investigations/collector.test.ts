@@ -36,9 +36,11 @@ describe("investigation evidence collector", () => {
       kind: "deployment",
       observedAt: deploymentAt.toISOString(),
       source: "acme/payments",
-      confidence: 1,
     }));
-    expect(bundle?.items.find(item => item.kind === "deployment")?.summary)
-      .toContain("failure, production, commit abcdef123456");
+    const deployment = bundle?.items.find(item => item.kind === "deployment");
+    expect(deployment?.confidence).toBeGreaterThanOrEqual(0.4);
+    expect(deployment?.confidence).toBeLessThanOrEqual(1);
+    expect(deployment?.summary).toContain("failure, production, commit abcdef123456");
+    expect(deployment?.summary).toContain("deployment preceded incident by 5 minutes");
   });
 });
