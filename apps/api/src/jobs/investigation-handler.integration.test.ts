@@ -83,6 +83,30 @@ describe.skipIf(!process.env.DATABASE_URL)("investigation worker PostgreSQL inte
     )).rejects.toMatchObject({ code: "INVESTIGATION_NOT_RUNNABLE" });
   });
 
+  it("rejects queued work after the requesting user is demoted", async () => {
+    await database.query(
+      "UPDATE organization_memberships SET role = 'viewer' WHERE organization_id = $1 AND user_id = $2",
+      [ids.organization, ids.user],
+    );
+    await database.query(
+      "UPDATE investigations SET status = 'queued', started_at = NULL WHERE organization_id = $1 AND id = $2",
+      [ids.organization, ids.investigation],
+    );
+
+    const client = await database.connect();
+    try {
+      await expect(validateInvestigationJobContext(client, job))
+        .rejects.toMatchObject({ code: "INVESTIGATION_JOB_CONTEXT_INVALID" });
+    } finally {
+      client.release();
+    }
+
+    await database.query(
+      "UPDATE organization_memberships SET role = 'responder' WHERE organization_id = $1 AND user_id = $2",
+      [ids.organization, ids.user],
+    );
+  });
+
   it("rejects stale authorization after membership removal", async () => {
     await database.query(
       "DELETE FROM organization_memberships WHERE organization_id = $1 AND user_id = $2",
