@@ -29,7 +29,7 @@ describe("investigation worker handler", () => {
     await expect(handleInvestigationJob(database(), job, { claim, run, fail })).resolves.toBe("completed");
     expect(claim).toHaveBeenCalledWith(expect.anything(), job.organizationId, job.investigationId);
     expect(run).toHaveBeenCalledWith(
-      expect.anything(), expect.anything(), job.organizationId, job.investigationId,
+      expect.anything(), null, job.organizationId, job.investigationId,
       "55555555-5555-4555-8555-555555555555", job.requestedByUserId,
     );
     expect(fail).not.toHaveBeenCalled();
