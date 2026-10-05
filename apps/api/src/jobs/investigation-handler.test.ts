@@ -22,12 +22,13 @@ function database() {
 
 describe("investigation worker handler", () => {
   it("claims then runs using the tenant-scoped job context", async () => {
+    const validateContext = vi.fn().mockResolvedValue(undefined);
     const claim = vi.fn().mockResolvedValue("55555555-5555-4555-8555-555555555555");
     const run = vi.fn().mockResolvedValue({ findings: [], evidenceCount: 1 });
     const fail = vi.fn();
 
-    await expect(handleInvestigationJob(database(), job, { claim, run, fail })).resolves.toBe("completed");
-    expect(claim).toHaveBeenCalledWith(expect.anything(), job.organizationId, job.investigationId);
+    await expect(handleInvestigationJob(database(), job, { validateContext, claim, run, fail })).resolves.toBe("completed");
+    expect(validateContext).toHaveBeenCalledWith(expect.anything(), job);\n    expect(claim).toHaveBeenCalledWith(expect.anything(), job.organizationId, job.investigationId);
     expect(run).toHaveBeenCalledWith(
       expect.anything(), null, job.organizationId, job.investigationId,
       "55555555-5555-4555-8555-555555555555", job.requestedByUserId,
@@ -36,12 +37,12 @@ describe("investigation worker handler", () => {
   });
 
   it("acknowledges a duplicate job without running the investigation", async () => {
-    const claim = vi.fn().mockRejectedValue(Object.assign(new Error("not runnable"), {
+    const validateContext = vi.fn().mockResolvedValue(undefined);\n    const claim = vi.fn().mockRejectedValue(Object.assign(new Error("not runnable"), {
       code: "INVESTIGATION_NOT_RUNNABLE",
     }));
     const run = vi.fn();
 
-    await expect(handleInvestigationJob(database(), job, { claim, run })).resolves.toBe("duplicate");
+    await expect(handleInvestigationJob(database(), job, { validateContext, claim, run })).resolves.toBe("duplicate");
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -51,7 +52,7 @@ describe("investigation worker handler", () => {
     const run = vi.fn().mockRejectedValue(failure);
     const fail = vi.fn().mockResolvedValue(undefined);
 
-    await expect(handleInvestigationJob(database(), job, { claim, run, fail })).rejects.toThrow(failure);
+    await expect(handleInvestigationJob(database(), job, { validateContext, claim, run, fail })).rejects.toThrow(failure);
     expect(fail).toHaveBeenCalledWith(
       expect.anything(), job.organizationId, job.investigationId, job.requestedByUserId,
       "55555555-5555-4555-8555-555555555555", failure,
