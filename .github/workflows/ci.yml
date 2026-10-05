@@ -3,7 +3,7 @@ on:
   push:
   pull_request:
 permissions:
-  contents: read
+  contents: write
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -37,6 +37,16 @@ jobs:
           path: package-lock.json
           retention-days: 1
       - run: git diff --exit-code -- package.json apps/api/package.json apps/web/package.json
+      - name: Commit generated lockfile
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if ! git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "build: commit resolved npm lockfile"
+            git push
+          fi
       - run: npm audit --audit-level=high
       - run: npm run db:migrate --workspace=@sentinelos/api
       - run: npm run db:migrate --workspace=@sentinelos/api
