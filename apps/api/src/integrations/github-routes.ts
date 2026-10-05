@@ -3,6 +3,7 @@ import type { Database } from "../db/database.js";
 import { ingestEvent } from "../events/repository.js";
 import { normalizeGitHubWebhook } from "./github.js";
 import { verifyGitHubWebhookSignature } from "./github-signature.js";
+import { resolveGitHubWebhookSecret } from "./github-secret.js";
 
 function header(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -14,11 +15,11 @@ export async function registerGitHubWebhookRoutes(app: FastifyInstance, database
     const eventName = header(request.headers["x-github-event"]);
     const signature = header(request.headers["x-hub-signature-256"]);
     const deliveryId = header(request.headers["x-github-delivery"]);
-    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+    const secret = await resolveGitHubWebhookSecret(database, organizationId);
 
     if (!secret) {
       return reply.code(503).send({
-        error: { code: "GITHUB_WEBHOOK_NOT_CONFIGURED", message: "GitHub webhook ingestion unavailable", requestId: request.id },
+        error: { code: "GITHUB_WEBHOOK_NOT_CONFIGURED", message: "GitHub webhook integration is not configured for this organization", requestId: request.id },
       });
     }
     const raw = (request as typeof request & { rawBody?: string }).rawBody;
