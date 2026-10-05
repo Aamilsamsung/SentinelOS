@@ -52,6 +52,21 @@ describe("telemetry HTTP API", () => {
     await app.close();
   });
 
+  it("accepts a valid metric for a responder", async () => {
+    const database = fakeDatabase();
+    const app = await buildApp({ database });
+    const response = await app.inject({
+      method: "POST", url: "/v1/telemetry/metrics",
+      headers: { ...headers, "content-type": "application/json" },
+      payload: { service: "checkout", metricName: "latency_ms", value: 920, unit: "ms", occurredAt: "2026-10-05T17:00:00.000Z" }
+    });
+    expect(response.statusCode).toBe(201);
+    const call = database.query.mock.calls.find((entry: unknown[]) => String(entry[0]).startsWith("INSERT INTO metric_points"));
+    expect(call?.[1]?.[0]).toBe("org-a");
+    expect(call?.[1]?.[2]).toBe("latency_ms");
+    await app.close();
+  });
+
   it("denies telemetry writes to viewers", async () => {
     const app = await buildApp({ database: fakeDatabase("viewer") });
     const response = await app.inject({
