@@ -40,3 +40,5 @@ jobs:
         run: docker compose config --quiet
       - name: Build API Docker image
         run: docker build -t sentinelos-api:ci .
+      - name: Build web Docker image
+        run: docker build -f apps/web/Dockerfile -t sentinelos-web:ci .
