@@ -14,6 +14,7 @@ import { registerIntegrationRoutes } from "./integrations/routes.js";
 import { registerDashboardRoutes } from "./dashboard/routes.js";
 import { registerActivityRoutes } from "./activity/routes.js";
 import { registerGitHubWebhookRoutes } from "./integrations/github-routes.js";
+import { registerTelemetryRoutes } from "./telemetry/routes.js";
 import type { EnqueueInvestigationInput } from "./jobs/queue.js";
 
 type HttpLikeError = Error & { statusCode?: number; code?: string };
@@ -47,6 +48,7 @@ export async function buildApp(dependencies: AppDependencies = {}) {
     await registerKnowledgeRoutes(app, dependencies.database);
     await registerIntegrationRoutes(app, dependencies.database);
     await registerGitHubWebhookRoutes(app, dependencies.database);
+    await registerTelemetryRoutes(app, dependencies.database);
     await registerDashboardRoutes(app, dependencies.database);
     await registerActivityRoutes(app, dependencies.database);
   }
