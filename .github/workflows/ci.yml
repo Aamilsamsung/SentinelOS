@@ -36,3 +36,5 @@ jobs:
       - run: npm run db:migrate --workspace=@sentinelos/api
       - run: npm test
       - run: npm run build
+      - name: Build API Docker image
+        run: docker build -t sentinelos-api:ci .
