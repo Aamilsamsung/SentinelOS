@@ -25,15 +25,16 @@ function boundEvidence(items: EvidenceItem[]) {
 
 export async function collectIncidentEvidence(database: Database, organizationId: string, incidentId: string) {
   const incidentResult = await database.query(
-    `SELECT id, detected_at FROM incidents WHERE organization_id = $1 AND id = $2`,
+    `SELECT id, detected_at, source FROM incidents WHERE organization_id = $1 AND id = $2`,
     [organizationId, incidentId]
   );
   if (!incidentResult.rowCount) return null;
   const detectedAt = incidentResult.rows[0].detected_at as Date;
+  const incidentSource = incidentResult.rows[0].source as string;
   const from = new Date(detectedAt.getTime() - 30 * 60_000);
   const to = new Date(detectedAt.getTime() + 30 * 60_000);
 
-  const [events, logs, metrics, deployments] = await Promise.all([
+  const [events, logs, metrics, deployments, topology] = await Promise.all([
     database.query(
       `SELECT id, event_type, source, payload, occurred_at FROM incident_events
         WHERE organization_id=$1 AND incident_id=$2 ORDER BY occurred_at ASC LIMIT 200`,
@@ -55,7 +56,15 @@ export async function collectIncidentEvidence(database: Database, organizationId
           AND event_type IN ('deployment.created','deployment.status')
           AND occurred_at BETWEEN $2 AND $3
         ORDER BY occurred_at ASC LIMIT 100`,
-      [organizationId, from, to])
+      [organizationId, from, to]),
+    database.query(
+      `SELECT u.name AS upstream_name, v.name AS downstream_name, d.dependency_type
+       FROM service_dependencies d
+       JOIN services u ON u.organization_id=d.organization_id AND u.id=d.upstream_service_id
+       JOIN services v ON v.organization_id=d.organization_id AND v.id=d.downstream_service_id
+       WHERE d.organization_id=$1 AND (u.name=$2 OR v.name=$2)
+       ORDER BY u.name, v.name LIMIT 100`,
+      [organizationId, incidentSource])
   ]);
 
   const items: EvidenceItem[] = [
@@ -75,6 +84,14 @@ export async function collectIncidentEvidence(database: Database, organizationId
     ...buildDeploymentEvidence(detectedAt, deployments.rows).map(item => ({
       ...item,
       summary: boundedSummary(item.summary),
+    })),
+    ...topology.rows.map((row, index) => ({
+      id: `topology:${index}:${row.upstream_name}:${row.downstream_name}`,
+      kind: "topology" as const,
+      observedAt: detectedAt.toISOString(),
+      summary: boundedSummary(`${row.upstream_name} -> ${row.downstream_name} (${row.dependency_type})`),
+      source: "service-topology",
+      confidence: 1
     }))
   ];
   return buildEvidenceBundle(incidentId, boundEvidence(items));
