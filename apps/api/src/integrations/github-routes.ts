@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { Database } from "../db/database.js";
 import { ingestEvent } from "../events/repository.js";
 import { normalizeGitHubWebhook } from "./github.js";
-import { verifyWebhookSignature } from "../events/signature.js";
+import { verifyGitHubWebhookSignature } from "./github-signature.js";
 
 function header(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -28,8 +28,7 @@ export async function registerGitHubWebhookRoutes(app: FastifyInstance, database
       });
     }
 
-    const digest = signature.startsWith("sha256=") ? signature.slice(7) : "";
-    if (!digest || !verifyWebhookSignature(secret, "", raw, digest, false)) {
+    if (!verifyGitHubWebhookSignature(secret, raw, signature)) {
       return reply.code(401).send({
         error: { code: "INVALID_GITHUB_WEBHOOK_SIGNATURE", message: "Invalid GitHub webhook signature", requestId: request.id },
       });
