@@ -1,4 +1,5 @@
 import { createClient } from "redis";
+import { parseSerializedJob } from "./jobs/types.js";
 
 const redisUrl = process.env.REDIS_URL;
 if (!redisUrl) throw new Error("REDIS_URL is required");
@@ -30,9 +31,8 @@ while (!stopping) {
   if (!item) continue;
 
   try {
-    const job = JSON.parse(item.element) as { type?: unknown; payload?: unknown };
-    if (typeof job.type !== "string") throw new Error("job type is required");
-    console.log(JSON.stringify({ event: "job.received", type: job.type }));
+    const job = parseSerializedJob(item.element);
+    console.log(JSON.stringify({ event: "job.received", type: job.type, jobId: job.jobId, investigationId: job.investigationId }));
   } catch {
     console.error(JSON.stringify({ event: "job.rejected", reason: "invalid_job" }));
   }
