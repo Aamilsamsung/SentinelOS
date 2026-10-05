@@ -51,12 +51,24 @@ jobs:
             api_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.ci.yaml ps -q api)" 2>/dev/null || true)"
             worker_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.ci.yaml ps -q worker)" 2>/dev/null || true)"
             if [ "$api_health" = "healthy" ] && [ "$worker_health" = "healthy" ]; then
-              exit 0
+              break
             fi
             sleep 2
           done
-          docker compose -f compose.ci.yaml ps
-          docker compose -f compose.ci.yaml logs api worker
+          if [ "$api_health" != "healthy" ] || [ "$worker_health" != "healthy" ]; then
+            docker compose -f compose.ci.yaml ps
+            docker compose -f compose.ci.yaml logs api worker
+            exit 1
+          fi
+          docker compose -f compose.ci.yaml exec -T redis redis-cli RPUSH sentinelos:jobs '{"type":"unsafe.probe"}'
+          for attempt in {1..15}; do
+            if docker compose -f compose.ci.yaml logs worker | grep -q '"event":"job.rejected","reason":"invalid_job"'; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker compose -f compose.ci.yaml logs worker
+          echo "worker did not consume the Redis probe"
           exit 1
       - name: Stop Compose runtime
         if: always()
