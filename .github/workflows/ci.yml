@@ -30,6 +30,7 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - run: npm install
+      - run: git diff --exit-code -- package.json apps/api/package.json apps/web/package.json
       - run: npm audit --audit-level=high
       - run: npm run db:migrate --workspace=@sentinelos/api
       - run: npm run db:migrate --workspace=@sentinelos/api
