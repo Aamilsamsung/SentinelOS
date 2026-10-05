@@ -2,6 +2,7 @@ import { createClient } from "redis";
 import { parseSerializedJob } from "./jobs/types.js";
 import { createDatabase } from "./db/database.js";
 import { handleInvestigationJob } from "./jobs/investigation-handler.js";
+import { recoverInFlightJobs } from "./jobs/recovery.js";
 
 const redisUrl = process.env.REDIS_URL;
 if (!redisUrl) throw new Error("REDIS_URL is required");
@@ -17,6 +18,10 @@ client.on("error", () => {
 });
 
 await client.connect();
+const recoveredJobs = await recoverInFlightJobs(client, queue, processingQueue);
+if (recoveredJobs > 0) {
+  console.log(JSON.stringify({ event: "worker.jobs_recovered", count: recoveredJobs }));
+}
 console.log(`SentinelOS worker listening on ${queue}`);
 
 let stopping = false;
