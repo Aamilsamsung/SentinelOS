@@ -1,0 +1,7 @@
+services:
+  postgres:
+    ports: []
+  redis:
+    ports: []
+  api:
+    ports: []
