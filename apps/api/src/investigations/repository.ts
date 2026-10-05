@@ -10,7 +10,7 @@ export async function startInvestigation(
   try {
     const result = await client.query(
       `INSERT INTO investigations (organization_id, incident_id, status, started_by, started_at)
-       VALUES ($1, $2, 'running', $3, now())
+       VALUES ($1, $2, 'queued', $3, NULL)
        RETURNING id`,
       [organizationId, incidentId, userId]
     );
@@ -24,6 +24,27 @@ export async function startInvestigation(
     }
     throw error;
   }
+}
+
+export async function claimInvestigation(
+  client: PoolClient,
+  organizationId: string,
+  investigationId: string
+): Promise<string> {
+  const result = await client.query(
+    `UPDATE investigations
+        SET status = 'running', started_at = now()
+      WHERE organization_id = $1 AND id = $2 AND status = 'queued'
+      RETURNING incident_id`,
+    [organizationId, investigationId]
+  );
+  if (!result.rowCount) {
+    throw Object.assign(new Error("Investigation is not runnable"), {
+      statusCode: 409,
+      code: "INVESTIGATION_NOT_RUNNABLE"
+    });
+  }
+  return result.rows[0].incident_id as string;
 }
 
 export async function persistFindings(
