@@ -4,7 +4,7 @@ import { withTransaction } from "../db/transaction.js";
 import { authenticateRequest } from "../security/authenticate.js";
 import { authorize } from "../security/context.js";
 import { writeAuditEvent } from "../audit/repository.js";
-import { startInvestigation } from "./repository.js";
+import { claimInvestigation, startInvestigation } from "./repository.js";
 import { listOrganizationInvestigations } from "./list.js";
 import { configuredAnalyzer } from "./analyzer.js";
 import { runInvestigation } from "./orchestrator.js";
@@ -52,7 +52,7 @@ export async function registerInvestigationRoutes(app: FastifyInstance, database
     });
 
     return reply.code(202).send({
-      data: { id: investigationId, incidentId, status: "running" }
+      data: { id: investigationId, incidentId, status: "queued" }
     });
   });
 
@@ -61,14 +61,14 @@ export async function registerInvestigationRoutes(app: FastifyInstance, database
     const context = await authenticateRequest(database, request.headers.authorization, organizationId);
     authorize(context, "investigation:run", context.organizationId);
     const investigationId = (request.params as { investigationId: string }).investigationId;
-    const row = await database.query(
-      `SELECT incident_id, status FROM investigations
-        WHERE organization_id = $1 AND id = $2`,
+    const existing = await database.query(
+      `SELECT 1 FROM investigations WHERE organization_id = $1 AND id = $2`,
       [context.organizationId, investigationId]
     );
-    if (!row.rowCount) throw Object.assign(new Error("Investigation not found"), { statusCode: 404, code: "INVESTIGATION_NOT_FOUND" });
-    if (row.rows[0].status !== "running") throw Object.assign(new Error("Investigation is not runnable"), { statusCode: 409, code: "INVESTIGATION_NOT_RUNNABLE" });
-    const incidentId = row.rows[0].incident_id as string;
+    if (!existing.rowCount) throw Object.assign(new Error("Investigation not found"), { statusCode: 404, code: "INVESTIGATION_NOT_FOUND" });
+    const incidentId = await withTransaction(database, client =>
+      claimInvestigation(client, context.organizationId, investigationId)
+    );
     try {
       const result = await runInvestigation(database, configuredAnalyzer(), context.organizationId, investigationId, incidentId, context.userId);
       return reply.send({ data: { id: investigationId, status: "completed", ...result } });
