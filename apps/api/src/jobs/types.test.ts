@@ -19,7 +19,7 @@ describe("investigation queue job contract", () => {
   it.each([
     ["invalid JSON", "{"],
     ["unknown job type", JSON.stringify({ ...validJob, type: "shell.execute" })],
-    ["missing organization", JSON.stringify(({ organizationId: _omit, ...job }) => job)(validJob)],
+    ["missing organization", JSON.stringify((({ organizationId: _omit, ...job }) => job)(validJob))],
     ["invalid investigation id", JSON.stringify({ ...validJob, investigationId: "inv-1" })],
     ["unexpected fields", JSON.stringify({ ...validJob, command: "rm -rf /" })],
   ])("rejects %s", (_label, serialized) => {
