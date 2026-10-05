@@ -6,6 +6,7 @@ import { recordInvestigationFailure } from "../investigations/failure.js";
 import { runInvestigation } from "../investigations/orchestrator.js";
 import { claimInvestigation } from "../investigations/repository.js";
 import type { InvestigationJob } from "./types.js";
+import { can, roles, type Role } from "../security/rbac.js";
 
 type HandlerDependencies = {
   validateContext?: typeof validateInvestigationJobContext;
@@ -19,7 +20,7 @@ export async function validateInvestigationJobContext(
   job: InvestigationJob,
 ): Promise<void> {
   const result = await client.query(
-    `SELECT 1
+    `SELECT m.role
        FROM investigations i
        JOIN organization_memberships m
          ON m.organization_id = i.organization_id
@@ -30,7 +31,8 @@ export async function validateInvestigationJobContext(
     [job.organizationId, job.investigationId, job.requestedByUserId],
   );
 
-  if (!result.rowCount) {
+  const role = result.rows[0]?.role;
+  if (!result.rowCount || !roles.includes(role as Role) || !can(role as Role, "investigation:run")) {
     throw Object.assign(new Error("Investigation job context is no longer valid"), {
       code: "INVESTIGATION_JOB_CONTEXT_INVALID",
     });
