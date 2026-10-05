@@ -47,6 +47,24 @@ services:
       timeout: 5s
       retries: 10
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["npm", "run", "worker", "--workspace=@sentinelos/api"]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://sentinel:sentinel_dev_only@postgres:5432/sentinelos
+      REDIS_URL: redis://redis:6379
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   web:
     build:
       context: .
