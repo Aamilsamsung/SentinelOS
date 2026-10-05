@@ -12,7 +12,11 @@ function header(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export async function registerInvestigationRoutes(\n  app: FastifyInstance,\n  database: Database,\n  enqueueInvestigation?: (input: EnqueueInvestigationInput) => Promise<{ jobId: string }>\n) {
+export async function registerInvestigationRoutes(
+  app: FastifyInstance,
+  database: Database,
+  enqueueInvestigation?: (input: EnqueueInvestigationInput) => Promise<{ jobId: string }>
+) {
   app.get("/v1/investigations", async request => {
     const organizationId = header(request.headers["x-organization-id"]);
     const context = await authenticateRequest(database, request.headers.authorization, organizationId);
