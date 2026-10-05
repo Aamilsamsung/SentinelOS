@@ -46,18 +46,18 @@ jobs:
         env:
           ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
         run: |
-          docker compose -f compose.yaml -f compose.ci.yaml up -d postgres redis api worker
+          docker compose -f compose.ci.yaml up -d postgres redis api worker
           for attempt in {1..30}; do
-            api_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.yaml -f compose.ci.yaml ps -q api)" 2>/dev/null || true)"
-            worker_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.yaml -f compose.ci.yaml ps -q worker)" 2>/dev/null || true)"
+            api_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.ci.yaml ps -q api)" 2>/dev/null || true)"
+            worker_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.ci.yaml ps -q worker)" 2>/dev/null || true)"
             if [ "$api_health" = "healthy" ] && [ "$worker_health" = "healthy" ]; then
               exit 0
             fi
             sleep 2
           done
-          docker compose -f compose.yaml -f compose.ci.yaml ps
-          docker compose -f compose.yaml -f compose.ci.yaml logs api worker
+          docker compose -f compose.ci.yaml ps
+          docker compose -f compose.ci.yaml logs api worker
           exit 1
       - name: Stop Compose runtime
         if: always()
-        run: docker compose -f compose.yaml -f compose.ci.yaml down -v
+        run: docker compose -f compose.ci.yaml down -v
