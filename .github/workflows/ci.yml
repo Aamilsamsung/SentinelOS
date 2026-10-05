@@ -42,3 +42,22 @@ jobs:
         run: docker build -t sentinelos-api:ci .
       - name: Build web Docker image
         run: docker build -f apps/web/Dockerfile -t sentinelos-web:ci .
+      - name: Smoke test Compose runtime
+        env:
+          ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+        run: |
+          docker compose up -d postgres redis api worker
+          for attempt in {1..30}; do
+            api_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q api)" 2>/dev/null || true)"
+            worker_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose ps -q worker)" 2>/dev/null || true)"
+            if [ "$api_health" = "healthy" ] && [ "$worker_health" = "healthy" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose ps
+          docker compose logs api worker
+          exit 1
+      - name: Stop Compose runtime
+        if: always()
+        run: docker compose down -v
