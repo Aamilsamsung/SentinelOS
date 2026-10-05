@@ -24,7 +24,7 @@ The specification requests Python/FastAPI/Pydantic/SQLAlchemy/Alembic/Pytest. Th
 - Monitoring/log/metric ingestion and query APIs/UI
 - Full approvals UX
 - Knowledge-base upload, extraction, embedding and semantic search
-- Production GitHub integration and integration-specific behavior
+- GitHub integration beyond signed deployment/deployment-status evidence ingestion (for example repository connection lifecycle and richer investigation context)
 - AI Assistant
 - Settings, organization administration and users/roles UX
 - API-key management UX
