@@ -10,11 +10,11 @@ describe("investigation evidence collector", () => {
     const database = {
       async query() {
         call += 1;
-        if (call === 1) return { rowCount: 1, rows: [{ id: "incident-1", detected_at: detectedAt }] };
+        if (call === 1) return { rowCount: 1, rows: [{ id: "incident-1", detected_at: detectedAt, source: "acme/payments" }] };
         if (call === 2) return { rowCount: 0, rows: [] };
         if (call === 3) return { rowCount: 0, rows: [] };
         if (call === 4) return { rowCount: 0, rows: [] };
-        return {
+        if (call === 5) return {
           rowCount: 1,
           rows: [{
             id: "deployment-1",
@@ -26,6 +26,11 @@ describe("investigation evidence collector", () => {
             occurred_at: deploymentAt,
           }],
         };
+        return { rowCount: 1, rows: [{
+          upstream_name: "checkout",
+          downstream_name: "acme/payments",
+          dependency_type: "runtime"
+        }] };
       },
     } as unknown as Database;
 
@@ -42,5 +47,10 @@ describe("investigation evidence collector", () => {
     expect(deployment?.confidence).toBeLessThanOrEqual(1);
     expect(deployment?.summary).toContain("failure, production, commit abcdef123456");
     expect(deployment?.summary).toContain("deployment preceded incident by 5 minutes");
+    expect(bundle?.items).toContainEqual(expect.objectContaining({
+      kind: "topology",
+      source: "service-topology",
+      summary: "checkout -> acme/payments (runtime)"
+    }));
   });
 });
