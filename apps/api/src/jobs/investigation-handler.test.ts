@@ -28,7 +28,8 @@ describe("investigation worker handler", () => {
     const fail = vi.fn();
 
     await expect(handleInvestigationJob(database(), job, { validateContext, claim, run, fail })).resolves.toBe("completed");
-    expect(validateContext).toHaveBeenCalledWith(expect.anything(), job);\n    expect(claim).toHaveBeenCalledWith(expect.anything(), job.organizationId, job.investigationId);
+    expect(validateContext).toHaveBeenCalledWith(expect.anything(), job);
+    expect(claim).toHaveBeenCalledWith(expect.anything(), job.organizationId, job.investigationId);
     expect(run).toHaveBeenCalledWith(
       expect.anything(), null, job.organizationId, job.investigationId,
       "55555555-5555-4555-8555-555555555555", job.requestedByUserId,
@@ -37,7 +38,8 @@ describe("investigation worker handler", () => {
   });
 
   it("acknowledges a duplicate job without running the investigation", async () => {
-    const validateContext = vi.fn().mockResolvedValue(undefined);\n    const claim = vi.fn().mockRejectedValue(Object.assign(new Error("not runnable"), {
+    const validateContext = vi.fn().mockResolvedValue(undefined);
+    const claim = vi.fn().mockRejectedValue(Object.assign(new Error("not runnable"), {
       code: "INVESTIGATION_NOT_RUNNABLE",
     }));
     const run = vi.fn();
