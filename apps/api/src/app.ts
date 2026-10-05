@@ -13,6 +13,7 @@ import { registerKnowledgeRoutes } from "./knowledge/routes.js";
 import { registerIntegrationRoutes } from "./integrations/routes.js";
 import { registerDashboardRoutes } from "./dashboard/routes.js";
 import { registerActivityRoutes } from "./activity/routes.js";
+import type { EnqueueInvestigationInput } from "./jobs/queue.js";
 
 type HttpLikeError = Error & { statusCode?: number; code?: string };
 
@@ -22,6 +23,7 @@ function normalizeError(error: unknown): HttpLikeError {
 
 export type AppDependencies = {
   database?: Database;
+  enqueueInvestigation?: (input: EnqueueInvestigationInput) => Promise<{ jobId: string }>;
 };
 
 export async function buildApp(dependencies: AppDependencies = {}) {
@@ -39,7 +41,7 @@ export async function buildApp(dependencies: AppDependencies = {}) {
     await registerIncidentRoutes(app, dependencies.database);
     await registerEventRoutes(app, dependencies.database);
     await registerActionRoutes(app, dependencies.database);
-    await registerInvestigationRoutes(app, dependencies.database);
+    await registerInvestigationRoutes(app, dependencies.database, dependencies.enqueueInvestigation);
     await registerNotificationRoutes(app, dependencies.database);
     await registerKnowledgeRoutes(app, dependencies.database);
     await registerIntegrationRoutes(app, dependencies.database);
