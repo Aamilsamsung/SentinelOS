@@ -1,5 +1,6 @@
 import type { Database } from "../db/database.js";
 import { buildEvidenceBundle, type EvidenceItem } from "./evidence.js";
+import { buildDeploymentEvidence } from "./deployment-context.js";
 
 const MAX_EVIDENCE_ITEMS = 300;
 const MAX_SUMMARY_CHARS = 2000;
@@ -71,18 +72,10 @@ export async function collectIncidentEvidence(database: Database, organizationId
       summary: boundedSummary(`${row.service} ${row.metric_name}=${row.value}${row.unit ? ` ${row.unit}` : ""}`),
       source: row.service, confidence: 1
     })),
-    ...deployments.rows.map(row => {
-      const attributes = (row.attributes ?? {}) as Record<string, unknown>;
-      const sha = typeof attributes.sha === "string" ? attributes.sha : undefined;
-      const environment = typeof attributes.environment === "string" ? attributes.environment : undefined;
-      const state = typeof attributes.state === "string" ? attributes.state : undefined;
-      const details = [state, environment, sha ? `commit ${sha.slice(0, 12)}` : undefined].filter(Boolean).join(", ");
-      return {
-        id: `deployment:${row.id}`, kind: "deployment" as const, observedAt: row.occurred_at.toISOString(),
-        summary: boundedSummary(details ? `${row.title} (${details})` : row.title),
-        source: row.service ?? "github", confidence: 1
-      };
-    })
+    ...buildDeploymentEvidence(detectedAt, deployments.rows).map(item => ({
+      ...item,
+      summary: boundedSummary(item.summary),
+    }))
   ];
   return buildEvidenceBundle(incidentId, boundEvidence(items));
 }
