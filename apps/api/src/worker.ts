@@ -11,8 +11,8 @@ const database = createDatabase();
 const queue = process.env.SENTINELOS_JOB_QUEUE ?? "sentinelos:jobs";
 const client = createClient({ url: redisUrl });
 
-client.on("error", (error) => {
-  console.error("worker redis error", error instanceof Error ? error.message : "unknown error");
+client.on("error", () => {
+  console.error(JSON.stringify({ event: "worker.redis_error" }));
 });
 
 await client.connect();
@@ -22,7 +22,7 @@ let stopping = false;
 async function shutdown(signal: string) {
   if (stopping) return;
   stopping = true;
-  console.log(`SentinelOS worker received ${signal}`);
+  console.log(JSON.stringify({ event: "worker.shutdown", signal }));
   await client.close();
   await database.end();
   process.exit(0);
@@ -35,12 +35,36 @@ while (!stopping) {
   const item = await client.blPop(queue, 5);
   if (!item) continue;
 
+  let job;
   try {
-    const job = parseSerializedJob(item.element);
-    console.log(JSON.stringify({ event: "job.received", type: job.type, jobId: job.jobId, investigationId: job.investigationId }));
-    const result = await handleInvestigationJob(database, job);
-    console.log(JSON.stringify({ event: "job.finished", type: job.type, jobId: job.jobId, investigationId: job.investigationId, result }));
+    job = parseSerializedJob(item.element);
   } catch {
     console.error(JSON.stringify({ event: "job.rejected", reason: "invalid_job" }));
+    continue;
+  }
+
+  console.log(JSON.stringify({
+    event: "job.received",
+    type: job.type,
+    jobId: job.jobId,
+    investigationId: job.investigationId,
+  }));
+
+  try {
+    const result = await handleInvestigationJob(database, job);
+    console.log(JSON.stringify({
+      event: "job.finished",
+      type: job.type,
+      jobId: job.jobId,
+      investigationId: job.investigationId,
+      result,
+    }));
+  } catch {
+    console.error(JSON.stringify({
+      event: "job.failed",
+      type: job.type,
+      jobId: job.jobId,
+      investigationId: job.investigationId,
+    }));
   }
 }
