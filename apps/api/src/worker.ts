@@ -9,6 +9,7 @@ if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
 const database = createDatabase();
 
 const queue = process.env.SENTINELOS_JOB_QUEUE ?? "sentinelos:jobs";
+const processingQueue = `${queue}:processing`;
 const client = createClient({ url: redisUrl });
 
 client.on("error", () => {
@@ -32,14 +33,15 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 process.on("SIGINT", () => void shutdown("SIGINT"));
 
 while (!stopping) {
-  const item = await client.blPop(queue, 5);
-  if (!item) continue;
+  const raw = await client.brPopLPush(queue, processingQueue, 5);
+  if (!raw) continue;
 
   let job;
   try {
-    job = parseSerializedJob(item.element);
+    job = parseSerializedJob(raw);
   } catch {
     console.error(JSON.stringify({ event: "job.rejected", reason: "invalid_job" }));
+    await client.lRem(processingQueue, 1, raw);
     continue;
   }
 
@@ -52,6 +54,7 @@ while (!stopping) {
 
   try {
     const result = await handleInvestigationJob(database, job);
+    await client.lRem(processingQueue, 1, raw);
     console.log(JSON.stringify({
       event: "job.finished",
       type: job.type,
@@ -60,6 +63,8 @@ while (!stopping) {
       result,
     }));
   } catch {
+    await client.lRem(processingQueue, 1, raw);
+    await client.rPush(queue, raw);
     console.error(JSON.stringify({
       event: "job.failed",
       type: job.type,
