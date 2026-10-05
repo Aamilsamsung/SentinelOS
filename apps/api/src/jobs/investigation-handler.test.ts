@@ -49,6 +49,7 @@ describe("investigation worker handler", () => {
   });
 
   it("records a failure after a successful claim and rethrows", async () => {
+    const validateContext = vi.fn().mockResolvedValue(undefined);
     const claim = vi.fn().mockResolvedValue("55555555-5555-4555-8555-555555555555");
     const failure = new Error("provider secret must not persist");
     const run = vi.fn().mockRejectedValue(failure);
@@ -59,5 +60,18 @@ describe("investigation worker handler", () => {
       expect.anything(), job.organizationId, job.investigationId, job.requestedByUserId,
       "55555555-5555-4555-8555-555555555555", failure,
     );
+  });
+
+  it("rejects stale authorization before claiming the investigation", async () => {
+    const validateContext = vi.fn().mockRejectedValue(Object.assign(new Error("stale membership"), {
+      code: "INVESTIGATION_JOB_CONTEXT_INVALID",
+    }));
+    const claim = vi.fn();
+    const run = vi.fn();
+
+    await expect(handleInvestigationJob(database(), job, { validateContext, claim, run }))
+      .rejects.toMatchObject({ code: "INVESTIGATION_JOB_CONTEXT_INVALID" });
+    expect(claim).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
   });
 });
