@@ -4,17 +4,15 @@ import { withTransaction } from "../db/transaction.js";
 import { authenticateRequest } from "../security/authenticate.js";
 import { authorize } from "../security/context.js";
 import { writeAuditEvent } from "../audit/repository.js";
-import { claimInvestigation, startInvestigation } from "./repository.js";
+import { startInvestigation } from "./repository.js";
 import { listOrganizationInvestigations } from "./list.js";
-import { configuredAnalyzer } from "./analyzer.js";
-import { runInvestigation } from "./orchestrator.js";
-import { recordInvestigationFailure } from "./failure.js";
+import type { EnqueueInvestigationInput } from "../jobs/queue.js";
 
 function header(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-export async function registerInvestigationRoutes(app: FastifyInstance, database: Database) {
+export async function registerInvestigationRoutes(\n  app: FastifyInstance,\n  database: Database,\n  enqueueInvestigation?: (input: EnqueueInvestigationInput) => Promise<{ jobId: string }>\n) {
   app.get("/v1/investigations", async request => {
     const organizationId = header(request.headers["x-organization-id"]);
     const context = await authenticateRequest(database, request.headers.authorization, organizationId);
@@ -66,16 +64,15 @@ export async function registerInvestigationRoutes(app: FastifyInstance, database
       [context.organizationId, investigationId]
     );
     if (!existing.rowCount) throw Object.assign(new Error("Investigation not found"), { statusCode: 404, code: "INVESTIGATION_NOT_FOUND" });
-    const incidentId = await withTransaction(database, client =>
-      claimInvestigation(client, context.organizationId, investigationId)
-    );
-    try {
-      const result = await runInvestigation(database, configuredAnalyzer(), context.organizationId, investigationId, incidentId, context.userId);
-      return reply.send({ data: { id: investigationId, status: "completed", ...result } });
-    } catch (error) {
-      await recordInvestigationFailure(database, context.organizationId, investigationId, context.userId, incidentId, error);
-      throw error;
+    if (!enqueueInvestigation) {
+      throw Object.assign(new Error("Investigation queue is not configured"), { statusCode: 503, code: "QUEUE_NOT_CONFIGURED" });
     }
+    const job = await enqueueInvestigation({
+      organizationId: context.organizationId,
+      investigationId,
+      requestedByUserId: context.userId
+    });
+    return reply.code(202).send({ data: { id: investigationId, status: "queued", jobId: job.jobId } });
   });
 
   app.get("/v1/incidents/:incidentId/investigations", async (request, reply) => {
