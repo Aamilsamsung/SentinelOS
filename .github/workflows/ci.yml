@@ -46,18 +46,19 @@ jobs:
         env:
           ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
         run: |
-          docker compose -f compose.ci.yaml up -d postgres redis api worker
+          docker compose -f compose.ci.yaml up -d postgres redis api worker web
           for attempt in {1..30}; do
             api_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.ci.yaml ps -q api)" 2>/dev/null || true)"
             worker_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.ci.yaml ps -q worker)" 2>/dev/null || true)"
-            if [ "$api_health" = "healthy" ] && [ "$worker_health" = "healthy" ]; then
+            web_health="$(docker inspect --format='{{.State.Health.Status}}' "$(docker compose -f compose.ci.yaml ps -q web)" 2>/dev/null || true)"
+            if [ "$api_health" = "healthy" ] && [ "$worker_health" = "healthy" ] && [ "$web_health" = "healthy" ]; then
               break
             fi
             sleep 2
           done
-          if [ "$api_health" != "healthy" ] || [ "$worker_health" != "healthy" ]; then
+          if [ "$api_health" != "healthy" ] || [ "$worker_health" != "healthy" ] || [ "$web_health" != "healthy" ]; then
             docker compose -f compose.ci.yaml ps
-            docker compose -f compose.ci.yaml logs api worker
+            docker compose -f compose.ci.yaml logs api worker web
             exit 1
           fi
           docker compose -f compose.ci.yaml exec -T redis redis-cli RPUSH sentinelos:jobs '{"type":"unsafe.probe"}'
