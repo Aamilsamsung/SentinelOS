@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "test": "vitest run",
     "db:migrate": "tsx src/db/migrate.ts",
-    "db:seed": "tsx src/db/seed.ts"
+    "db:seed": "tsx src/db/seed.ts",
+    "worker": "node dist/worker.js"
   },
   "dependencies": {
     "@fastify/helmet": "13.0.1",
@@ -17,7 +18,8 @@
     "fastify-raw-body": "5.0.0",
     "fastify": "5.12.5",
     "zod": "4.1.11",
-    "pg": "8.16.3"
+    "pg": "8.16.3",
+    "redis": "5.8.2"
   },
   "devDependencies": {
     "@types/node": "24.7.0",
