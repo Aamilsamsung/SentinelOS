@@ -64,6 +64,11 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const {createClient}=require('redis');const c=createClient({url:process.env.REDIS_URL});c.connect().then(()=>c.ping()).then(()=>c.close()).then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
   web:
     build:
