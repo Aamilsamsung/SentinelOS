@@ -77,6 +77,8 @@ jobs:
           fi
 
           # Prove the authenticated HTTP -> Redis -> worker -> PostgreSQL path without external AI.
+          docker compose -f compose.ci.yaml exec -T api npm run migrate --workspace=@sentinelos/api
+
           e2e_org="aaaaaaaa-1111-4111-8111-111111111111"
           e2e_user="bbbbbbbb-2222-4222-8222-222222222222"
           e2e_token="sentinelos-ci-e2e-token"
