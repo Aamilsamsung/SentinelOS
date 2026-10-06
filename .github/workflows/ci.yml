@@ -62,14 +62,32 @@ jobs:
             exit 1
           fi
           docker compose -f compose.ci.yaml exec -T redis redis-cli RPUSH sentinelos:jobs '{"type":"unsafe.probe"}'
+          invalid_probe_seen=false
           for attempt in {1..15}; do
             if docker compose -f compose.ci.yaml logs worker | grep -q '"event":"job.rejected","reason":"invalid_job"'; then
+              invalid_probe_seen=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$invalid_probe_seen" != "true" ]; then
+            docker compose -f compose.ci.yaml logs worker
+            echo "worker did not consume the invalid Redis probe"
+            exit 1
+          fi
+
+          dead_job='{"version":1,"type":"investigation.run","jobId":"11111111-1111-4111-8111-111111111111","organizationId":"22222222-2222-4222-8222-222222222222","investigationId":"33333333-3333-4333-8333-333333333333","requestedByUserId":"44444444-4444-4444-8444-444444444444","enqueuedAt":"2026-10-06T12:00:00.000Z","attempt":2}'
+          docker compose -f compose.ci.yaml exec -T redis redis-cli RPUSH sentinelos:jobs "$dead_job"
+          for attempt in {1..15}; do
+            dead_count="$(docker compose -f compose.ci.yaml exec -T redis redis-cli LLEN sentinelos:jobs:dead | tr -d '\r')"
+            if [ "$dead_count" -ge 1 ]; then
+              docker compose -f compose.ci.yaml exec -T redis redis-cli LRANGE sentinelos:jobs:dead 0 -1 | grep -q '"attempt":3'
               exit 0
             fi
             sleep 1
           done
           docker compose -f compose.ci.yaml logs worker
-          echo "worker did not consume the Redis probe"
+          echo "worker did not dead-letter the exhausted investigation job"
           exit 1
       - name: Stop Compose runtime
         if: always()
