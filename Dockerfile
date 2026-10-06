@@ -15,6 +15,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 RUN npm ci --omit=dev --workspace=@sentinelos/api
 COPY --from=build /app/apps/api/dist apps/api/dist
+COPY apps/api/db apps/api/db
 USER node
 EXPOSE 3001
 CMD ["npm", "run", "start", "--workspace=@sentinelos/api"]
