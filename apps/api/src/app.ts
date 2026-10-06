@@ -16,6 +16,7 @@ import { registerActivityRoutes } from "./activity/routes.js";
 import { registerGitHubWebhookRoutes } from "./integrations/github-routes.js";
 import { registerTelemetryRoutes } from "./telemetry/routes.js";
 import { registerTopologyRoutes } from "./topology/routes.js";
+import { registerBrowserAuthRoutes } from "./security/browser-auth-routes.js";
 import type { EnqueueInvestigationInput } from "./jobs/queue.js";
 
 type HttpLikeError = Error & { statusCode?: number; code?: string };
@@ -53,6 +54,7 @@ export async function buildApp(dependencies: AppDependencies = {}) {
     await registerTopologyRoutes(app, dependencies.database);
     await registerDashboardRoutes(app, dependencies.database);
     await registerActivityRoutes(app, dependencies.database);
+    await registerBrowserAuthRoutes(app, dependencies.database);
   }
 
   app.get("/health", async () => ({
