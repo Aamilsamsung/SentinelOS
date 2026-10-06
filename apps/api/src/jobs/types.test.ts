@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSerializedJob } from "./types.js";
+import { nextAttempt, parseSerializedJob } from "./types.js";
 
 const validJob = {
   version: 1,
@@ -13,7 +13,7 @@ const validJob = {
 
 describe("investigation queue job contract", () => {
   it("accepts a versioned, tenant-scoped investigation job", () => {
-    expect(parseSerializedJob(JSON.stringify(validJob))).toEqual(validJob);
+    expect(parseSerializedJob(JSON.stringify(validJob))).toEqual({ ...validJob, attempt: 0 });
   });
 
   it.each([
