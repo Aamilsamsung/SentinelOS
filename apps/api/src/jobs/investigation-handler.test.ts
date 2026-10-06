@@ -10,6 +10,7 @@ const job: InvestigationJob = {
   investigationId: "33333333-3333-4333-8333-333333333333",
   requestedByUserId: "44444444-4444-4444-8444-444444444444",
   enqueuedAt: "2026-10-05T14:00:00.000Z",
+  attempt: 0,
 };
 
 function database() {
