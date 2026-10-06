@@ -2,7 +2,6 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import type { Database } from "../db/database.js";
 import { findBrowserIdentityByEmail } from "./browser-auth-repository.js";
-import { createBrowserSession } from "./browser-session-repository.js";
 
 const startSchema = z.object({
   email: z.string().email().max(320)
