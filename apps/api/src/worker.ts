@@ -1,5 +1,5 @@
 import { createClient } from "redis";
-import { parseSerializedJob } from "./jobs/types.js";
+import { nextAttempt, parseSerializedJob } from "./jobs/types.js";
 import { createDatabase } from "./db/database.js";
 import { handleInvestigationJob } from "./jobs/investigation-handler.js";
 import { recoverInFlightJobs } from "./jobs/recovery.js";
@@ -11,6 +11,8 @@ const database = createDatabase();
 
 const queue = process.env.SENTINELOS_JOB_QUEUE ?? "sentinelos:jobs";
 const processingQueue = `${queue}:processing`;
+const deadLetterQueue = `${queue}:dead`;
+const maxAttempts = Math.max(1, Number.parseInt(process.env.SENTINELOS_JOB_MAX_ATTEMPTS ?? "3", 10) || 3);
 const client = createClient({ url: redisUrl });
 
 client.on("error", () => {
@@ -69,12 +71,16 @@ while (!stopping) {
     }));
   } catch {
     await client.lRem(processingQueue, 1, raw);
-    await client.rPush(queue, raw);
+    const attempted = nextAttempt(job);
+    const exhausted = attempted.attempt >= maxAttempts;
+    await client.rPush(exhausted ? deadLetterQueue : queue, JSON.stringify(attempted));
     console.error(JSON.stringify({
-      event: "job.failed",
+      event: exhausted ? "job.dead_lettered" : "job.retry_scheduled",
       type: job.type,
       jobId: job.jobId,
       investigationId: job.investigationId,
+      attempt: attempted.attempt,
+      maxAttempts,
     }));
   }
 }
