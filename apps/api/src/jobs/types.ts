@@ -8,6 +8,7 @@ export const investigationJobSchema = z.object({
   investigationId: z.uuid(),
   requestedByUserId: z.uuid(),
   enqueuedAt: z.iso.datetime(),
+  attempt: z.number().int().min(0).max(100).default(0),
 }).strict();
 
 export type InvestigationJob = z.infer<typeof investigationJobSchema>;
@@ -18,4 +19,9 @@ export function parseJob(input: unknown): InvestigationJob {
 
 export function parseSerializedJob(serialized: string): InvestigationJob {
   return parseJob(JSON.parse(serialized));
+}
+
+
+export function nextAttempt(job: InvestigationJob): InvestigationJob {
+  return investigationJobSchema.parse({ ...job, attempt: job.attempt + 1 });
 }
