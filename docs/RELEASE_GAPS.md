@@ -12,6 +12,7 @@ This register maps the authoritative specification to the current repository. It
 - Current-role permission revalidation before queued investigation execution
 - Docker images and production-style Compose health checks for web/API/worker/PostgreSQL/Redis
 - CI dependency audit, tests, builds, migrations and runtime smoke verification
+- Authenticated API-to-Redis-to-worker-to-PostgreSQL investigation pipeline runtime verification (controlled no-AI-provider failure path)
 - Next.js command-center foundation backed by real APIs
 
 ## Release blockers from the authoritative specification
@@ -38,7 +39,7 @@ The specification requests Python/FastAPI/Pydantic/SQLAlchemy/Alembic/Pytest. Th
 - Real authenticated browser login/session/org selection instead of server-configured frontend credentials
 - CSRF protection for browser state-changing operations
 - Trusted remediation executors for allowlisted actions
-- Full API-to-Redis-to-worker-to-PostgreSQL end-to-end investigation test
+- Successful AI-backed API-to-Redis-to-worker-to-PostgreSQL end-to-end investigation test (the controlled no-provider failure path is runtime-verified)
 - Playwright browser tests and broader security/E2E coverage
 - Deployment/release documentation and production environment validation
 
