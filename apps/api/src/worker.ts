@@ -12,7 +12,8 @@ const database = createDatabase();
 const queue = process.env.SENTINELOS_JOB_QUEUE ?? "sentinelos:jobs";
 const processingQueue = `${queue}:processing`;
 const deadLetterQueue = `${queue}:dead`;
-const maxAttempts = Math.max(1, Number.parseInt(process.env.SENTINELOS_JOB_MAX_ATTEMPTS ?? "3", 10) || 3);
+const configuredMaxAttempts = Number.parseInt(process.env.SENTINELOS_JOB_MAX_ATTEMPTS ?? "3", 10);
+const maxAttempts = Math.min(100, Math.max(1, Number.isFinite(configuredMaxAttempts) ? configuredMaxAttempts : 3));
 const client = createClient({ url: redisUrl });
 
 client.on("error", () => {
