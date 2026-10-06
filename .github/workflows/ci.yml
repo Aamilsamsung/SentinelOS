@@ -89,11 +89,11 @@ jobs:
           INSERT INTO organization_memberships (organization_id,user_id,role) VALUES ('$e2e_org','$e2e_user','responder') ON CONFLICT DO NOTHING;
           INSERT INTO sessions (user_id,token_hash,expires_at) VALUES ('$e2e_user','$e2e_hash',now()+interval '1 hour') ON CONFLICT DO NOTHING;
           SQL
-          incident_response="$(curl -fsS -X POST http://127.0.0.1:3001/v1/incidents -H "Authorization: Bearer $e2e_token" -H "x-organization-id: $e2e_org" -H 'content-type: application/json' --data '{"title":"CI pipeline incident","summary":"Runtime E2E","severity":"warning","source":"ci-e2e","detectedAt":"2026-10-06T12:00:00.000Z"}')"
+          incident_response="$(curl -fsS -X POST http://localhost:3001/v1/incidents -H "Authorization: Bearer $e2e_token" -H "x-organization-id: $e2e_org" -H 'content-type: application/json' --data '{"title":"CI pipeline incident","summary":"Runtime E2E","severity":"warning","source":"ci-e2e","detectedAt":"2026-10-06T12:00:00.000Z"}')"
           incident_id="$(printf '%s' "$incident_response" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).data.id')"
-          investigation_response="$(curl -fsS -X POST "http://127.0.0.1:3001/v1/incidents/$incident_id/investigations" -H "Authorization: Bearer $e2e_token" -H "x-organization-id: $e2e_org")"
+          investigation_response="$(curl -fsS -X POST "http://localhost:3001/v1/incidents/$incident_id/investigations" -H "Authorization: Bearer $e2e_token" -H "x-organization-id: $e2e_org")"
           investigation_id="$(printf '%s' "$investigation_response" | node -pe 'JSON.parse(require("fs").readFileSync(0,"utf8")).data.id')"
-          curl -fsS -X POST "http://127.0.0.1:3001/v1/investigations/$investigation_id/run" -H "Authorization: Bearer $e2e_token" -H "x-organization-id: $e2e_org" >/dev/null
+          curl -fsS -X POST "http://localhost:3001/v1/investigations/$investigation_id/run" -H "Authorization: Bearer $e2e_token" -H "x-organization-id: $e2e_org" >/dev/null
           for attempt in {1..20}; do
             investigation_status="$(docker compose -f compose.ci.yaml exec -T postgres psql -U sentinel -d sentinelos -Atc "SELECT status FROM investigations WHERE id='$investigation_id';" | tr -d '\r')"
             if [ "$investigation_status" = "failed" ]; then
