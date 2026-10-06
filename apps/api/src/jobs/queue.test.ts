@@ -19,6 +19,7 @@ describe("investigation queue", () => {
       jobId: "11111111-1111-4111-8111-111111111111",
       ...input,
       enqueuedAt: "2026-10-05T13:43:00.000Z",
+      attempt: 0,
     });
   });
 
