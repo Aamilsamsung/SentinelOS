@@ -20,6 +20,7 @@ const job: InvestigationJob = {
   investigationId: ids.investigation,
   requestedByUserId: ids.user,
   enqueuedAt: "2026-10-05T15:00:00.000Z",
+  attempt: 0,
 };
 
 describe.skipIf(!process.env.DATABASE_URL)("investigation worker PostgreSQL integration", () => {
