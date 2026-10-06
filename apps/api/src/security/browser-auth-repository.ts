@@ -38,3 +38,18 @@ export async function findBrowserIdentityByEmail(
       }))
   };
 }
+
+export async function hasOrganizationMembership(
+  database: Database,
+  userId: string,
+  organizationId: string
+): Promise<boolean> {
+  const result = await database.query(
+    `SELECT 1
+       FROM organization_memberships
+      WHERE user_id = $1 AND organization_id = $2
+      LIMIT 1`,
+    [userId, organizationId]
+  );
+  return result.rows.length === 1;
+}
