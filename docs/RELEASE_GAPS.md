@@ -8,7 +8,7 @@ This register maps the authoritative specification to the current repository. It
 - Session/API-key authentication primitives and RBAC
 - Incidents, events, investigations, evidence-backed findings and remediation state machine
 - Approval/verification controls and audit persistence
-- Redis asynchronous worker with processing acknowledgement, retry and bounded crash recovery
+- Redis asynchronous worker with processing acknowledgement, bounded retries, dead-letter routing and bounded crash recovery
 - Current-role permission revalidation before queued investigation execution
 - Docker images and production-style Compose health checks for web/API/worker/PostgreSQL/Redis
 - CI dependency audit, tests, builds, migrations and runtime smoke verification
@@ -20,8 +20,8 @@ This register maps the authoritative specification to the current repository. It
 The specification requests Python/FastAPI/Pydantic/SQLAlchemy/Alembic/Pytest. The verified backend is TypeScript/Fastify/PostgreSQL/Vitest. This requires either a migration or an explicit approved specification amendment.
 
 ### Product modules not yet complete end-to-end
-- Service catalog/topology APIs and UI
-- Monitoring/log/metric ingestion and query APIs/UI
+- Service catalog/topology UI (tenant-scoped APIs and investigation evidence collection are implemented)
+- Monitoring/log/metric UI (tenant-scoped ingestion/query APIs and investigation evidence collection are implemented)
 - Full approvals UX
 - Knowledge-base upload, extraction, embedding and semantic search
 - GitHub integration beyond signed deployment/deployment-status evidence ingestion (for example repository connection lifecycle and richer investigation context)
@@ -34,12 +34,10 @@ The specification requests Python/FastAPI/Pydantic/SQLAlchemy/Alembic/Pytest. Th
 - WebSocket or Server-Sent Events real-time event stream
 
 ### Production/security hardening still required
-- Per-integration webhook secrets instead of a single global secret
 - Production-grade secret/key management and rotation
 - Real authenticated browser login/session/org selection instead of server-configured frontend credentials
 - CSRF protection for browser state-changing operations
 - Trusted remediation executors for allowlisted actions
-- Retry/dead-letter policy with bounded attempts for repeatedly failing jobs
 - Full API-to-Redis-to-worker-to-PostgreSQL end-to-end investigation test
 - Playwright browser tests and broader security/E2E coverage
 - Deployment/release documentation and production environment validation
