@@ -26,3 +26,20 @@ export function organizationCookie(organizationId: string, secure = true): strin
 export function csrfCookie(token: string, secure = true): string {
   return `${CSRF_COOKIE}=${token}; Path=/; SameSite=Strict; Max-Age=28800${secure ? "; Secure" : ""}`;
 }
+
+export function readCookie(header: string | undefined, name: string): string | undefined {
+  if (!header) return undefined;
+  for (const part of header.split(";")) {
+    const [key, ...rest] = part.trim().split("=");
+    if (key === name) return rest.join("=");
+  }
+  return undefined;
+}
+
+export function clearBrowserCookie(name: string, secure = true): string {
+  return `${name}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secure ? "; Secure" : ""}`;
+}
+
+export function clearCsrfCookie(secure = true): string {
+  return `${CSRF_COOKIE}=; Path=/; SameSite=Strict; Max-Age=0${secure ? "; Secure" : ""}`;
+}
