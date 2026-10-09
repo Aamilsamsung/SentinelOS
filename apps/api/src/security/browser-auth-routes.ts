@@ -51,4 +51,20 @@ export async function registerBrowserAuthRoutes(app: FastifyInstance, database: 
     reply.header("set-cookie", [sessionCookie(session.sessionToken, secure), organizationCookie(parsed.data.organizationId, secure), csrfCookie(session.csrfToken, secure)]);
     return reply.code(200).send({ data: { authenticated: true, organizationId: parsed.data.organizationId, expiresAt: session.expiresAt } });
   });
+  app.post("/v1/browser-auth/logout", async (request, reply) => {
+    const sessionToken = readCookie(request.headers.cookie, BROWSER_SESSION_COOKIE);
+    const organizationId = readCookie(request.headers.cookie, BROWSER_ORGANIZATION_COOKIE);
+    const csrf = readCookie(request.headers.cookie, CSRF_COOKIE);
+    const csrfHeader = typeof request.headers["x-csrf-token"] === "string" ? request.headers["x-csrf-token"] : undefined;
+    if (!sessionToken || !organizationId || !csrfMatches(csrf, csrfHeader)) {
+      return reply.code(403).send({ error: { code: "CSRF_REJECTED", message: "CSRF validation failed", requestId: request.id } });
+    }
+    const context = await resolveSession(database, sessionToken, organizationId);
+    if (!context) return reply.code(401).send({ error: { code: "INVALID_SESSION", message: "Invalid or expired session", requestId: request.id } });
+    await revokeBrowserSession(database, context.sessionId, context.userId);
+    const secure = process.env.NODE_ENV === "production";
+    reply.header("set-cookie", [clearBrowserCookie(BROWSER_SESSION_COOKIE, secure), clearBrowserCookie(BROWSER_ORGANIZATION_COOKIE, secure), clearCsrfCookie(secure)]);
+    return reply.code(200).send({ data: { authenticated: false } });
+  });
+
 }
