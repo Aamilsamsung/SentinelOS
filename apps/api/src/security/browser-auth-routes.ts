@@ -51,6 +51,19 @@ export async function registerBrowserAuthRoutes(app: FastifyInstance, database: 
     reply.header("set-cookie", [sessionCookie(session.sessionToken, secure), organizationCookie(parsed.data.organizationId, secure), csrfCookie(session.csrfToken, secure)]);
     return reply.code(200).send({ data: { authenticated: true, organizationId: parsed.data.organizationId, expiresAt: session.expiresAt } });
   });
+  app.get("/v1/browser-auth/me", async (request, reply) => {
+    const sessionToken = readCookie(request.headers.cookie, BROWSER_SESSION_COOKIE);
+    const organizationId = readCookie(request.headers.cookie, BROWSER_ORGANIZATION_COOKIE);
+    if (!sessionToken || !organizationId) {
+      return reply.code(401).send({ error: { code: "INVALID_SESSION", message: "Authentication required", requestId: request.id } });
+    }
+    const context = await resolveSession(database, sessionToken, organizationId);
+    if (!context) {
+      return reply.code(401).send({ error: { code: "INVALID_SESSION", message: "Invalid or expired session", requestId: request.id } });
+    }
+    return reply.code(200).send({ data: { authenticated: true, organizationId, userId: context.userId } });
+  });
+
   app.post("/v1/browser-auth/logout", async (request, reply) => {
     const sessionToken = readCookie(request.headers.cookie, BROWSER_SESSION_COOKIE);
     const organizationId = readCookie(request.headers.cookie, BROWSER_ORGANIZATION_COOKIE);
