@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+
 export type DashboardSummary = {
   openIncidents: number;
   activeInvestigations: number;
@@ -7,8 +9,9 @@ export type DashboardSummary = {
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary | null> {
   const baseUrl = process.env.SENTINELOS_API_URL;
-  const organizationId = process.env.SENTINELOS_ORGANIZATION_ID;
-  const token = process.env.SENTINELOS_SESSION_TOKEN;
+  const cookieStore = await cookies();
+  const organizationId = cookieStore.get("sentinelos_organization")?.value;
+  const token = cookieStore.get("sentinelos_session")?.value;
   if (!baseUrl || !organizationId || !token) return null;
 
   const response = await fetch(`${baseUrl}/v1/dashboard/summary`, {
@@ -37,8 +40,9 @@ export type ActivityItem = {
 
 export async function fetchActivity(): Promise<ActivityItem[] | null> {
   const baseUrl = process.env.SENTINELOS_API_URL;
-  const organizationId = process.env.SENTINELOS_ORGANIZATION_ID;
-  const token = process.env.SENTINELOS_SESSION_TOKEN;
+  const cookieStore = await cookies();
+  const organizationId = cookieStore.get("sentinelos_organization")?.value;
+  const token = cookieStore.get("sentinelos_session")?.value;
   if (!baseUrl || !organizationId || !token) return null;
   const response = await fetch(`${baseUrl}/v1/activity`, {
     headers: { authorization: `Bearer ${token}`, "x-organization-id": organizationId },
@@ -62,15 +66,16 @@ export type Incident = {
   updatedAt: string;
 };
 
-function apiConfig() {
+async function apiConfig() {
   const baseUrl = process.env.SENTINELOS_API_URL;
-  const organizationId = process.env.SENTINELOS_ORGANIZATION_ID;
-  const token = process.env.SENTINELOS_SESSION_TOKEN;
+  const cookieStore = await cookies();
+  const organizationId = cookieStore.get("sentinelos_organization")?.value;
+  const token = cookieStore.get("sentinelos_session")?.value;
   return baseUrl && organizationId && token ? { baseUrl, organizationId, token } : null;
 }
 
 export async function fetchIncidents(): Promise<Incident[] | null> {
-  const config = apiConfig();
+  const config = await apiConfig();
   if (!config) return null;
   const response = await fetch(`${config.baseUrl}/v1/incidents`, {
     headers: {
@@ -86,7 +91,7 @@ export async function fetchIncidents(): Promise<Incident[] | null> {
 
 
 async function fetchProtected<T>(path: string): Promise<T | null> {
-  const config = apiConfig();
+  const config = await apiConfig();
   if (!config) return null;
   const response = await fetch(`${config.baseUrl}${path}`, {
     headers: { authorization: `Bearer ${config.token}`, "x-organization-id": config.organizationId },
