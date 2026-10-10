@@ -6,14 +6,15 @@ describe("browser logout", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("rejects state-changing logout without matching CSRF proof", async () => {
-    const database = { query: vi.fn() } as never;
+    const query = vi.fn();
+    const database = { query } as never;
     const app = await buildApp({ database });
     const response = await app.inject({
       method: "POST", url: "/v1/browser-auth/logout",
       headers: { cookie: "sentinelos_session=token; sentinelos_organization=org; sentinelos_csrf=csrf-a", "x-csrf-token": "csrf-b" }
     });
     expect(response.statusCode).toBe(403);
-    expect(database.query).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
     await app.close();
   });
 
