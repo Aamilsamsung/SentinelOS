@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 
+function cookie(header: string | null, name: string): string | undefined {
+  return header?.split(";").map((part) => part.trim()).find((part) => part.startsWith(name + "="))?.slice(name.length + 1);
+}
+
 export async function POST(request: Request, context: { params: Promise<{ actionId: string }> }) {
   const baseUrl = process.env.SENTINELOS_API_URL;
-  const organizationId = process.env.SENTINELOS_ORGANIZATION_ID;
-  const token = process.env.SENTINELOS_SESSION_TOKEN;
+  const cookies = request.headers.get("cookie");
+  const organizationId = cookie(cookies, "sentinelos_organization");
+  const token = cookie(cookies, "sentinelos_session");
+  const csrf = cookie(cookies, "sentinelos_csrf");
+  const suppliedCsrf = request.headers.get("x-csrf-token");
+  if (!csrf || !suppliedCsrf || csrf !== suppliedCsrf) {
+    return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
+  }
   if (!baseUrl || !organizationId || !token) {
-    return NextResponse.json({ error: "SentinelOS API is not configured" }, { status: 503 });
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
   const { actionId } = await context.params;
