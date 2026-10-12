@@ -46,7 +46,7 @@ function prioritise(path: string): number {
 function candidate(path: string): boolean {
   return safePath(path) && (codeExt.test(path) || /(^|\/)(Dockerfile|Makefile|\.env\.example|requirements\.txt|go\.mod|Cargo\.toml)$/.test(path));
 }
-function selectPaths(entries: FileEntry[]): FileEntry[] {
+function selectPaths<T extends FileEntry>(entries: T[]): T[] {
   return entries.filter(e => candidate(e.path) && e.size <= MAX_FILE_BYTES && e.size >= 0)
     .sort((a, b) => prioritise(a.path) - prioritise(b.path) || a.path.localeCompare(b.path))
     .slice(0, MAX_FILES);
