@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { deflateRawSync } from "node:zlib";
-import { inspectGitHub, inspectZip } from "../../web/lib/source-inspection";
+import { createInspectionReport, inspectGitHub, inspectZip } from "../../web/lib/source-inspection";
 
 function makeZip(files: Array<{ name: string; body: string; deflate?: boolean }>): Buffer {
   const chunks: Buffer[] = [];
@@ -58,6 +58,19 @@ describe("source inspection", () => {
     expect(report.filesInspected).toBe(5);
     expect(report.checks.every(check => check.passed)).toBe(true);
     expect(report.findings.some(finding => finding.title === "Outstanding work marker")).toBe(true);
+  });
+
+  it("flags authentication and API integration patterns without claiming live validation", () => {
+    const files = [
+      { path: "src/auth/google.ts", size: 200, content: 'const clientSecret = "actual-looking-example"; localStorage.setItem("access_token", token); // invalid_grant' },
+      { path: "src/api/client.ts", size: 90, content: 'fetch("http://api.example.com/login")' }
+    ];
+    const report = createInspectionReport("zip", "example.zip", "sample", files, files);
+    expect(report.findings.some(f => f.title === "Possible embedded authentication secret")).toBe(true);
+    expect(report.findings.some(f => f.title === "Authentication token stored in browser storage")).toBe(true);
+    expect(report.findings.some(f => f.title === "OAuth provider error reference")).toBe(true);
+    expect(report.findings.some(f => f.title === "Unencrypted API request pattern")).toBe(true);
+    expect(report.findings.every(f => !/confirmed live/i.test(f.detail))).toBe(true);
   });
 
   it("refuses malformed archives and skips traversal entries", () => {
