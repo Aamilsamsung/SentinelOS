@@ -85,6 +85,16 @@ describe("source inspection", () => {
     expect(report.findings.every(f => /review|not found|marker/i.test(f.title + " " + f.detail) || f.level !== "attention")).toBe(true);
   });
 
+  it("marks large source samples as partial instead of claiming full coverage", () => {
+    const archive = makeZip(Array.from({ length: 55 }, (_, index) => ({
+      name: `src/file-${String(index).padStart(2, "0")}.ts`, body: "export const value = 1;"
+    })));
+    const report = inspectZip(archive, "large.zip");
+    expect(report.filesDiscovered).toBe(55);
+    expect(report.filesInspected).toBe(48);
+    expect(report.partial).toBe(true);
+  });
+
   it("refuses malformed archives and skips traversal entries", () => {
     expect(() => inspectZip(Buffer.from("not-a-zip"), "bad.zip")).toThrow(/ZIP/);
     const archive = makeZip([{ name: "../outside.ts", body: "eval('unsafe')" }, { name: "src/normal.ts", body: "export {}" }]);
