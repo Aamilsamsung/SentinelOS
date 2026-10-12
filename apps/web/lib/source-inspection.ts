@@ -260,6 +260,53 @@ async function limitedText(url: string): Promise<string | undefined> {
   } catch { return undefined; }
 }
 
+/**
+ * GitHub's unauthenticated REST API is shared by many preview visitors and may
+ * return HTTP 403/429. The public archive endpoint does not consume REST API
+ * quota. Fetch it with strict byte/time limits and run the same in-memory ZIP
+ * inspector, without executing repository content.
+ */
+async function inspectPublicArchive(owner: string, repository: string): Promise<InspectionReport> {
+  let lastError = "Public repository archive is unavailable. Try uploading a ZIP.";
+  for (const branch of ["main", "master"]) {
+    try {
+      const response = await fetch(
+        `https://codeload.github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}/zip/refs/heads/${branch}`,
+        { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(12000),
+          headers: { "user-agent": "SentinelOS-Preview-Inspector" } }
+      );
+      if (response.status === 404) continue;
+      if (!response.ok || !response.body) {
+        lastError = "GitHub archive download is temporarily unavailable. Try uploading a ZIP.";
+        continue;
+      }
+      const reader = response.body.getReader();
+      const parts: Uint8Array[] = [];
+      let length = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          length += value.byteLength;
+          if (length > MAX_ZIP_BYTES) throw new Error("Repository archive exceeds the 5 MB preview limit. Download a smaller ZIP and upload it.");
+          parts.push(value);
+        }
+      } finally { await reader.cancel().catch(() => {}); }
+      const report = inspectZip(Buffer.concat(parts), `${repository}-${branch}.zip`);
+      return {
+        ...report, kind: "github", name: `${owner}/${repository}`,
+        source: `https://github.com/${owner}/${repository}`,
+        // ZIP sampling limits still apply; this is not a full security audit.
+        partial: report.partial
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : lastError;
+      if (/exceeds the 5 MB/i.test(lastError)) throw new Error(lastError);
+    }
+  }
+  throw new Error(lastError);
+}
+
 export async function inspectGitHub(value: string): Promise<InspectionReport> {
   let url: URL;
   try { url = new URL(value.trim()); } catch { throw new Error("Enter a valid public GitHub repository URL."); }
@@ -276,11 +323,18 @@ export async function inspectGitHub(value: string): Promise<InspectionReport> {
     throw new Error("Invalid GitHub repository URL.");
   }
   const api = `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repository)}`;
-  const metadata = await getJson(api) as { default_branch?: string; private?: boolean; full_name?: string };
-  if (metadata.private || typeof metadata.default_branch !== "string") throw new Error("Only public repositories can be inspected.");
-  const tree = await getJson(`${api}/git/trees/${encodeURIComponent(metadata.default_branch)}?recursive=1`) as {
-    tree?: Array<{ path?: string; type?: string; size?: number }>; truncated?: boolean
-  };
+  let metadata: { default_branch?: string; private?: boolean; full_name?: string };
+  let tree: { tree?: Array<{ path?: string; type?: string; size?: number }>; truncated?: boolean };
+  try {
+    metadata = await getJson(api) as typeof metadata;
+    if (metadata.private || typeof metadata.default_branch !== "string") throw new Error("Only public repositories can be inspected.");
+    tree = await getJson(`${api}/git/trees/${encodeURIComponent(metadata.default_branch)}?recursive=1`) as typeof tree;
+  } catch (error) {
+    if (error instanceof Error && /GitHub rate limit reached/i.test(error.message)) {
+      return inspectPublicArchive(owner, repository);
+    }
+    throw error;
+  }
   if (!Array.isArray(tree.tree)) throw new Error("Could not list files in this repository.");
   const allFiles = tree.tree
     .filter(e => e.type === "blob" && typeof e.path === "string" && safePath(e.path))
