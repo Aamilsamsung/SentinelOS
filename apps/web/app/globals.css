@@ -329,3 +329,13 @@ a,button,input,select{transition:background-color .18s,border-color .18s,color .
 @media(max-width:950px){.statusSteps{grid-template-columns:1fr}.statusStep{min-height:unset}}
 @media(max-width:650px){.productStatus{padding:18px}.productStatusTitle{flex-wrap:wrap}.statusMode{margin-left:auto}.dashboardContent,.scanContent{padding:18px 15px}.metricGrid{gap:10px}.dashboardTopbar,.scanTopbar{flex-wrap:wrap}.welcomeHero{border-radius:15px}.entryChoice{grid-template-columns:38px 1fr 14px;gap:9px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* Inspection report usability */
+.findingsExplanation{font-size:12px;line-height:1.6;margin:10px 0 15px;color:#9db5a7}
+.findingFilters{display:flex;gap:7px;flex-wrap:wrap;margin:0 0 17px}
+.findingFilters button{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid #2b4637;background:#0c1c14;color:#a9c6b4;border-radius:999px;font-size:11px;cursor:pointer;transition:background .18s,border-color .18s}
+.findingFilters button:hover{background:#1c3a2a}
+.findingFilters button.active{background:#235239;color:#b4ffd0;border-color:#4e9d6c}
+.findingFilters button span{display:inline-grid;place-items:center;min-width:19px;height:19px;border-radius:50%;background:#ffffff14;font-size:10px;font-variant-numeric:tabular-nums}
+.findingFilters button:focus-visible{outline:2px solid #8ff0b9;outline-offset:2px}
+@media(max-width:600px){.findingFilters{gap:5px}.findingFilters button{padding:7px 9px}}
