@@ -22,7 +22,7 @@ export type InspectionReport = {
 };
 
 type FileEntry = { path: string; size: number; content?: string };
-const MAX_FILES = 36;
+const MAX_FILES = 48;
 const MAX_FILE_BYTES = 128 * 1024;
 const MAX_ZIP_BYTES = 5 * 1024 * 1024;
 const MAX_PATHS = 5000;
@@ -40,8 +40,8 @@ function prioritise(path: string): number {
   if (/(^|\/)(package\.json|pyproject\.toml|requirements\.txt|go\.mod|Cargo\.toml|Dockerfile)$/i.test(path)) return 0;
   if (/\.github\/workflows\/.*\.ya?ml$/i.test(path)) return 1;
   if (/(^|\/)(README\.md|\.env\.example)$/i.test(path)) return 2;
-  if (/(^|\/)(__tests__|test|tests|spec)(\/|\.)|\.(test|spec)\.[jt]sx?$/i.test(path)) return 3;
-  if (/(^|\/)(auth|login|signin|sign-in|oauth|callback|api|integrations?|middleware|security)(\/|\.|-)|(?:auth|oauth|login|callback|integrations?)\.[jt]sx?$/i.test(path)) return 4;
+  if (/(^|\/)(__tests__|test|tests|spec)(\/|\.)|\.(test|spec)\.[jt]sx?$/i.test(path)) return 4;
+  if (/(^|\/)(auth|login|signin|sign-in|oauth|callback|api|integrations?|middleware|security)(\/|\.|-)|(?:auth|oauth|login|callback|integrations?)\.[jt]sx?$/i.test(path)) return 3;
   return 5;
 }
 function candidate(path: string): boolean {
@@ -151,6 +151,21 @@ export function createInspectionReport(
     if (/(?:cors\s*\(\s*\{[^}]*origin\s*:\s*["']\*["']|Access-Control-Allow-Origin["']?\s*[:,]\s*["']\*["'])/i.test(sourceText)
       && /(?:credentials\s*:\s*true|Access-Control-Allow-Credentials)/i.test(sourceText)) {
       emit("attention", "Potentially unsafe CORS configuration", "Wildcard cross-origin access appears alongside credential handling. Verify the effective CORS policy for authenticated endpoints.");
+    }
+    if (authRelevant && /(?:GOOGLE_CLIENT_ID|GOOGLE_REDIRECT_URI|redirect_uri|callbackURL|callbackUrl)/i.test(sourceText)
+      && /(?:localhost|127\\.0\\.0\\.1)(?::\\d+)?(?:\\/|["'\\x60]|$)/i.test(sourceText)
+      && !/(?:test|spec|fixture|example|readme|\\.env\\.example)/i.test(file.path)) {
+      emit("review", "Localhost OAuth callback or configuration", "An authentication-related file references localhost alongside OAuth configuration. Verify production redirect URIs and provider allowlists; local development URLs may be intentional.");
+    }
+    if (authRelevant && /(?:verifyIdToken|verify_oauth2_token|jwtVerify|verifyToken)/i.test(sourceText)
+      && /(?:google|oauth|oidc)/i.test(sourceText)
+      && !/(?:audience|clientId|client_id|issuer|iss\\b)/i.test(sourceText)) {
+      emit("review", "OAuth token validation configuration not evident", "Token verification is referenced, but audience or issuer checks are not obvious in this sampled file. Inspect the verifier configuration and trust boundaries.");
+    }
+    if (/(?:fetch\\s*\\(|axios\\.)/i.test(sourceText)
+      && /(?:api|integration|provider|webhook)/i.test(file.path)
+      && /(?:catch\\s*\\([^)]*\\)\\s*\\{\\s*\\}|catch\\s*\\{\\s*\\})/i.test(sourceText)) {
+      emit("review", "API errors may be silently ignored", "An empty catch block appears near API integration code. Confirm failed requests produce actionable diagnostics and appropriate retries.");
     }
     if (/\b(TODO|FIXME)\b/.test(sourceText) && matchedRules < 12) {
       findings.push({ level: "info", title: "Outstanding work marker", file: file.path,
