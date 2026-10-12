@@ -14,6 +14,10 @@ export async function POST(request: Request, context: { params: Promise<{ action
   const organizationId = cookie(cookies, "sentinelos_organization");
   const token = cookie(cookies, "sentinelos_session");
   const csrf = cookie(cookies, "sentinelos_csrf");
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {
+    return NextResponse.json({ error: "Cross-site request rejected" }, { status: 403 });
+  }
   const suppliedCsrf = request.headers.get("x-csrf-token");
   if (!csrf || !suppliedCsrf || csrf !== suppliedCsrf) {
     return NextResponse.json({ error: "CSRF validation failed" }, { status: 403 });
