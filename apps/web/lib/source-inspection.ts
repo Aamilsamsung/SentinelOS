@@ -1,10 +1,14 @@
 import { inflateRawSync } from "node:zlib";
+import { auditAuthApiSource } from "./auth-api-audit";
 
 export type InspectionFinding = {
   level: "attention" | "review" | "info";
   title: string;
   detail: string;
   file?: string;
+  category?: "authentication" | "oauth" | "api" | "security" | "project";
+  line?: number;
+  recommendation?: string;
 };
 export type InspectionCheck = { label: string; passed: boolean; detail: string };
 export type InspectionReport = {
@@ -171,6 +175,15 @@ export function createInspectionReport(
       findings.push({ level: "info", title: "Outstanding work marker", file: file.path,
         detail: "TODO or FIXME marker appears in a sampled file. Review whether it affects release readiness." });
       matchedRules++;
+    }
+  }
+  // Additional issue-specific checks include source line and remediation guidance.
+  // The total report remains bounded to avoid overwhelming the user.
+  for (const file of sampled) {
+    if (!file.content || findings.length >= 40) break;
+    for (const issue of auditAuthApiSource(file.path, file.content)) {
+      if (findings.length >= 40) break;
+      if (!findings.some(existing => existing.file === issue.file && existing.title === issue.title)) findings.push(issue);
     }
   }
   const languages = Array.from(new Set(paths.map(languageFor).filter((x): x is string => Boolean(x)))).slice(0, 7);
