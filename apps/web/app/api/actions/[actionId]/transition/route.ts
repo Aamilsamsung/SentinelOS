@@ -6,6 +6,10 @@ function cookie(header: string | null, name: string): string | undefined {
 
 export async function POST(request: Request, context: { params: Promise<{ actionId: string }> }) {
   const baseUrl = process.env.SENTINELOS_API_URL;
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) {
+    return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 });
+  }
   const cookies = request.headers.get("cookie");
   const organizationId = cookie(cookies, "sentinelos_organization");
   const token = cookie(cookies, "sentinelos_session");
