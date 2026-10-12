@@ -70,6 +70,19 @@ export function SourceWorkbench() {
     }
   }
 
+  function downloadReport() {
+    if (!result) return;
+    const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" });
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = "sentinelos-inspection-report.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(href);
+  }
+
   function changeMode(next: Mode) {
     setMode(next);
     setResult(null);
@@ -134,7 +147,7 @@ export function SourceWorkbench() {
         <div><div className="eyebrow">INSPECTION COMPLETE</div><h2>{result.name}</h2>
           <p>{result.kind === "github" ? "Public GitHub snapshot" : "Uploaded ZIP archive"} · Checked {new Date(result.inspectedAt).toLocaleString()}</p>
         </div>
-        <span className="resultState">✓ Static checks finished</span>
+        <div className="resultActions"><span className="resultState">✓ Static checks finished</span><button type="button" className="reportDownload" onClick={downloadReport}>↓ Download JSON report</button></div>
       </div>
       <div className="resultMetrics">
         <div><strong>{result.filesDiscovered}</strong><span>Files discovered</span></div>
