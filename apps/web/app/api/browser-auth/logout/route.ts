@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   const baseUrl = process.env.SENTINELOS_API_URL;
   if (!baseUrl) return NextResponse.json({ error: "API is not configured" }, { status: 503 });
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) {
+    return NextResponse.json({ error: "Cross-origin logout rejected" }, { status: 403 });
+  }
   const csrfHeader = request.headers.get("x-csrf-token");
   const cookieHeader = request.headers.get("cookie") ?? "";
   const csrfCookie = cookieHeader.split(";").map((value) => value.trim()).find((value) => value.startsWith("sentinelos_csrf="))?.slice("sentinelos_csrf=".length);
