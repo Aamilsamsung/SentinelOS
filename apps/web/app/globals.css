@@ -296,3 +296,36 @@ button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{o
 @media(max-width:700px){.resultActions{justify-content:flex-start}}
 
 .exampleRepoButton{display:inline-flex;align-items:center;justify-content:flex-start;width:max-content;max-width:100%;background:transparent;border:0;color:#8be7b0;padding:2px 0;font-size:12px;font-weight:700;text-align:left;cursor:pointer}.exampleRepoButton:hover{text-decoration:underline;color:#b8f6cd}
+
+/* Commercial-preview refinement: clarity, focus and hierarchy */
+::selection{background:#86f0b3;color:#0a2416}
+html{font-synthesis:none}
+body{-webkit-font-smoothing:antialiased}
+a,button,input,select{transition:background-color .18s,border-color .18s,color .18s,box-shadow .18s}
+.newSidebar{box-shadow:8px 0 30px #00000010}
+.dashboardContent,.scanContent{margin:0 auto}
+.welcomeHero{box-shadow:0 16px 55px #00000025}
+.metricCard:focus-visible,.entryChoice:focus-visible,.statusStep:focus-visible{outline:2px solid #8ff6b9;outline-offset:3px}
+.metricCard:hover,.entryChoice:hover,.statusStep:hover{box-shadow:0 12px 25px #00000020}
+.dashboardPanel,.inspectorPanel,.inspectorInfo,.integrationFormPanel,.integrationSide,.inspectionResults{box-shadow:0 8px 25px #00000012}
+.productStatus{margin-top:22px;border:1px solid #2c4c39;background:linear-gradient(110deg,#11251a,#0e1c15);border-radius:17px;padding:23px}
+.productStatusTitle{display:flex;gap:13px;align-items:center;margin-bottom:19px}
+.productStatusTitle>div{flex:1}
+.productStatusTitle strong,.productStatusTitle small{display:block}
+.productStatusTitle strong{font-size:16px;letter-spacing:-.2px}
+.productStatusTitle small{font-size:11px;margin-top:5px}
+.statusLiveDot{width:11px;height:11px;background:#8eecb3;border-radius:50%;box-shadow:0 0 0 5px #83ecaf16}
+.statusMode{font-size:10px;letter-spacing:1.2px;font-weight:800;border:1px solid #3a7651;border-radius:99px;padding:7px 11px;color:#a5f2c0}
+.statusSteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.statusStep{display:flex;align-items:flex-start;gap:12px;min-height:96px;padding:18px 15px;text-decoration:none;border:1px solid #294b37;border-radius:12px;background:#132a1d}
+.statusStep:hover{background:#1a3526;border-color:#6aa67b}
+.statusStepNumber{font-size:11px;font-weight:800;color:#83e5a9;background:#244831;border-radius:7px;padding:7px}
+.statusStep>span:nth-child(2){flex:1;min-width:0}
+.statusStep strong,.statusStep small{display:block}
+.statusStep strong{font-size:12px}
+.statusStep small{font-size:10px;line-height:1.6;margin-top:7px}
+.statusStep>span:last-child{color:#8ec7a0}
+.productStatusFoot{margin:17px 0 0;font-size:10px;line-height:1.6;color:#86a493}
+@media(max-width:950px){.statusSteps{grid-template-columns:1fr}.statusStep{min-height:unset}}
+@media(max-width:650px){.productStatus{padding:18px}.productStatusTitle{flex-wrap:wrap}.statusMode{margin-left:auto}.dashboardContent,.scanContent{padding:18px 15px}.metricGrid{gap:10px}.dashboardTopbar,.scanTopbar{flex-wrap:wrap}.welcomeHero{border-radius:15px}.entryChoice{grid-template-columns:38px 1fr 14px;gap:9px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
