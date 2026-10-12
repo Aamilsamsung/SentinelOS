@@ -1,3 +1,5 @@
+import { PreviewNotice } from "../components/preview-notice";
+import { isPreviewMode } from "../../lib/preview-data";
 import { SiteNavigation } from "../components/site-navigation";
 import { SessionActions } from "../components/session-actions";
 import Link from "next/link";
@@ -6,8 +8,8 @@ import { fetchIncidents } from "../../lib/api";
 export default async function IncidentsPage() {
   const incidents = await fetchIncidents();
   return <main className="content standalone">
-    <div className="topline"><div><div className="eyebrow">SENTINELOS / INCIDENTS</div><h2>Incidents</h2><p>Organization-scoped operational incidents ordered by detection time.</p></div><div className="pageActions"><SessionActions /><Link className="back" href="/">Command Center</Link></div></div><div className="inlineNavigation"><SiteNavigation /></div>
-    <section className="panel tablePanel">
+    <div className="topline"><div><div className="eyebrow">SENTINELOS / INCIDENTS</div><h2>Incidents</h2><p>Organization-scoped operational incidents ordered by detection time.</p></div><div className="pageActions">{isPreviewMode ? <span className="previewTag">Demo preview</span> : <SessionActions />}<Link className="back" href="/">Command Center</Link></div></div><div className="inlineNavigation"><SiteNavigation /></div>
+    <PreviewNotice /><section className="panel tablePanel">
       {incidents?.length ? <div className="incidentTable">
         <div className="incidentRow tableHead"><span>Incident</span><span>Severity</span><span>Status</span><span>Source</span><span>Detected</span></div>
         {incidents.map(incident => <div className="incidentRow" key={incident.id}>
