@@ -66,8 +66,17 @@ async function permitted(request: Request): Promise<boolean> {
 
 export async function POST(request: Request) {
   const origin = request.headers.get("origin");
-  if (origin && origin !== new URL(request.url).origin) {
-    return respond({ error: "Cross-origin inspections are not allowed." }, 403);
+  if (origin) {
+    let matchesHost = false;
+    try {
+      const supplied = new URL(origin);
+      const host = request.headers.get("host")?.toLowerCase();
+      matchesHost = Boolean(host && (supplied.protocol === "http:" || supplied.protocol === "https:")
+        && supplied.host.toLowerCase() === host);
+    } catch { /* invalid Origin is rejected below */ }
+    if (origin !== new URL(request.url).origin && !matchesHost) {
+      return respond({ error: "Cross-origin inspections are not allowed." }, 403);
+    }
   }
   const fetchSite = request.headers.get("sec-fetch-site");
   if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {
