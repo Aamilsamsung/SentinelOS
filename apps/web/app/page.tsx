@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { SessionActions } from "./components/session-actions";
 import { PreviewNotice } from "./components/preview-notice";
+import { ProductStatus } from "./components/product-status";
 import { SiteNavigation } from "./components/site-navigation";
 import { isPreviewMode } from "../lib/preview-data";
 import { fetchActivity, fetchDashboardSummary } from "../lib/api";
@@ -69,6 +70,7 @@ export default async function CommandCenter() {
           </div>
         </section>
       </div>
+      <ProductStatus />
       <footer className="dashboardFooter">SentinelOS · Detect. Investigate. Resolve. <span>{isPreviewMode ? "Illustrative product preview" : "Operational workspace"}</span></footer>
     </div>
   </main>;
