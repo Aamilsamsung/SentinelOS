@@ -7,6 +7,10 @@ export async function POST(request: Request) {
   if (origin && origin !== new URL(request.url).origin) {
     return NextResponse.json({ error: "Cross-origin authentication request rejected" }, { status: 403 });
   }
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("application/json")) {
+    return NextResponse.json({ error: "JSON content type required" }, { status: 415 });
+  }
   const upstream = await fetch(`${baseUrl}/v1/browser-auth/start`, {
     method: "POST",
     headers: { "content-type": "application/json" },
