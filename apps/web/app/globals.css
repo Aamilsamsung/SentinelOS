@@ -294,3 +294,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{o
 .reportDownload{background:#163e2a;border:1px solid #4b9367;color:#c5f8d8;font-weight:700;cursor:pointer;padding:10px 14px}
 .reportDownload:hover{background:#205c3b}
 @media(max-width:700px){.resultActions{justify-content:flex-start}}
+
+.exampleRepoButton{display:inline-flex;align-items:center;justify-content:flex-start;width:max-content;max-width:100%;background:transparent;border:0;color:#8be7b0;padding:2px 0;font-size:12px;font-weight:700;text-align:left;cursor:pointer}.exampleRepoButton:hover{text-decoration:underline;color:#b8f6cd}
