@@ -249,7 +249,7 @@ export function inspectZip(bytes: Buffer, filename: string): InspectionReport {
       sampled.push({ path: entry.path, size: entry.size, content: expanded.toString("utf8") });
     } catch { /* malformed, oversized or unsupported entry is never executed */ }
   }
-  return createInspectionReport("zip", filename.slice(0, 120), "Uploaded ZIP (processed in memory)", entries, sampled, sampled.length < chosen.length);
+  return createInspectionReport("zip", filename.slice(0, 120), "Uploaded ZIP (processed in memory)", entries, sampled, sampled.length < chosen.length || entries.filter(entry => candidate(entry.path) && entry.size <= MAX_FILE_BYTES).length > chosen.length);
 }
 
 async function getJson(url: string): Promise<unknown> {
@@ -381,5 +381,5 @@ export async function inspectGitHub(value: string): Promise<InspectionReport> {
   }
   return createInspectionReport("github", metadata.full_name ?? `${owner}/${repository}`,
     `https://github.com/${owner}/${repository}`, allFiles, sampled,
-    Boolean(tree.truncated || tree.tree.length > MAX_PATHS || sampled.some(f => f.content === undefined)));
+    Boolean(tree.truncated || tree.tree.length > MAX_PATHS || sampled.some(f => f.content === undefined) || allFiles.filter(entry => candidate(entry.path) && entry.size <= MAX_FILE_BYTES).length > chosen.length));
 }
