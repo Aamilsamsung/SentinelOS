@@ -98,6 +98,37 @@ export function createInspectionReport(
         detail: "A TLS verification bypass pattern was found. Verify it is not enabled in production." });
       matchedRules++;
     }
+    // Authentication and third-party API integration checks are static heuristics.
+    // Never claim to validate a live OAuth handshake, callback or provider credentials.
+    const authRelevant = /(?:auth|login|signin|sign-in|oauth|callback|session|middleware|firebase|supabase|nextauth|passport)/i.test(file.path)
+      || /(?:google-auth-library|next-auth|@auth\/|firebase\/auth|passport-google-oauth|googleapis)/i.test(sourceText);
+    const emit = (level: InspectionFinding["level"], title: string, detail: string) => {
+      if (matchedRules >= 12) return;
+      findings.push({ level, title, detail, file: file.path });
+      matchedRules++;
+    };
+    if (authRelevant && /(?:redirect_uri_mismatch|invalid_client|invalid_grant|unauthorized_client)/i.test(sourceText)) {
+      emit("review", "OAuth provider error reference", "OAuth error strings were found in an authentication-related file. Check configured callback URLs, OAuth client ID and provider settings; this does not prove a current failure.");
+    }
+    if (authRelevant && /(?:client_secret|clientSecret|GOOGLE_CLIENT_SECRET|NEXTAUTH_SECRET|AUTH_SECRET)\s*[:=]\s*["'][^"'$\\{][^"']{7,}["']/i.test(sourceText)) {
+      emit("attention", "Possible embedded authentication secret", "A possible hard-coded authentication secret was found. Review it and use a server-side secret manager. Do not upload real credentials to a public preview.");
+    }
+    if (authRelevant && /(?:localStorage|sessionStorage)\.setItem\s*\(\s*["'`][^"'`]*(?:token|session|access_token|refresh_token)/i.test(sourceText)) {
+      emit("review", "Authentication token stored in browser storage", "A token storage pattern was found. Review XSS exposure, token lifetime and safer HttpOnly cookie alternatives.");
+    }
+    if (authRelevant && /(?:sameSite\s*:\s*["']none["']|sameSite\s*:\s*false)/i.test(sourceText)) {
+      emit("review", "Cross-site session cookie configuration", "Review cookie Secure, HttpOnly, SameSite and CSRF protections for authentication flows.");
+    }
+    if (authRelevant && /(?:signInWithPopup|signInWithRedirect|GoogleProvider|GoogleAuthProvider|passport\.authenticate\(["']google|provider\s*:\s*["']google)/i.test(sourceText)) {
+      const hasCallback = paths.some(p => /(?:auth|oauth|callback|redirect|firebase|middleware)/i.test(p));
+      if (!hasCallback) emit("review", "Google login callback not evident", "Google sign-in code appears in the sampled source, but no obvious callback or auth configuration path was discovered. Confirm the authorized redirect URI and server-side verification.");
+    }
+    if (/\bfetch\s*\(\s*["'`]http:\/\//i.test(sourceText) && !/(?:test|spec|mock|fixture)/i.test(file.path)) {
+      emit("review", "Unencrypted API request pattern", "A literal HTTP API URL was found. Confirm transport encryption and avoid sending credentials over plaintext.");
+    }
+    if (/(?:axios|fetch)\s*\([^)]*(?:process\.env\.NEXT_PUBLIC_[A-Z_]*(?:SECRET|TOKEN|KEY)|import\.meta\.env\.VITE_[A-Z_]*(?:SECRET|TOKEN|KEY))/i.test(sourceText)) {
+      emit("review", "Client-exposed API credential reference", "A public-prefixed environment variable resembling a credential was found in an API call. Verify that no private keys are bundled into the browser.");
+    }
     if (/\b(TODO|FIXME)\b/.test(sourceText) && matchedRules < 12) {
       findings.push({ level: "info", title: "Outstanding work marker", file: file.path,
         detail: "TODO or FIXME marker appears in a sampled file. Review whether it affects release readiness." });
