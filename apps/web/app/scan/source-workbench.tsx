@@ -13,6 +13,7 @@ export function SourceWorkbench() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<InspectionReport | null>(null);
+  const [findingFilter, setFindingFilter] = useState<"all" | "attention" | "review" | "info">("all");
 
   function chooseFile(selected?: File | null) {
     setError("");
@@ -62,6 +63,7 @@ export function SourceWorkbench() {
       });
       const payload = await response.json() as { data?: InspectionReport; error?: string };
       if (!response.ok || !payload.data) throw new Error(payload.error || "Inspection could not be completed.");
+      setFindingFilter("all");
       setResult(payload.data);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Inspection failed. Please try again.");
@@ -137,7 +139,8 @@ export function SourceWorkbench() {
       <div className="inspectionFeatures">
         <div><span className="featureMark">◇</span><div><strong>Project structure</strong><small>Languages, manifests, dependencies and documentation.</small></div></div>
         <div><span className="featureMark">✓</span><div><strong>Delivery readiness</strong><small>Test files, CI workflows and packaging signals.</small></div></div>
-        <div><span className="featureMark">⌁</span><div><strong>Code patterns</strong><small>Selected high-risk patterns and outstanding TODO markers.</small></div></div>
+        <div><span className="featureMark">⌁</span><div><strong>Login &amp; Google OAuth</strong><small>Heuristic checks for token verification, auth secrets and session-flow concerns.</small></div></div>
+        <div><span className="featureMark">⎇</span><div><strong>API integration health</strong><small>Flag suspicious credentials, insecure transport and missing error handling patterns.</small></div></div>
         <div><span className="featureMark">▧</span><div><strong>Actionable summary</strong><small>A transparent report with file counts, limitations and suggested reviews.</small></div></div>
       </div>
       <div className="inspectorInfoBottom"><span className="pulseDot" /> Preview engine <span>·</span> No code execution</div>
@@ -166,7 +169,9 @@ export function SourceWorkbench() {
           <div className="languages"><strong>Detected languages</strong><div>{result.languages.length ? result.languages.map(lang => <span key={lang}>{lang}</span>) : <small>No supported source extensions detected</small>}</div></div>
         </div>
         <div className="reportCard"><h3>Findings to review</h3>
-          {result.findings.map((finding, index) => <div className="findingRow" key={index}>
+          <p className="findingsExplanation">Prioritized code signals, not confirmed runtime failures. Open each referenced file and verify the actual behavior.</p>
+          <div className="findingFilters" aria-label="Filter findings">{(["all", "attention", "review", "info"] as const).map(level => <button key={level} type="button" aria-pressed={findingFilter === level} className={findingFilter === level ? "active" : ""} onClick={() => setFindingFilter(level)}>{level === "all" ? "All" : level === "attention" ? "Priority" : level === "review" ? "Review" : "Info"} <span>{level === "all" ? result.findings.length : result.findings.filter(item => item.level === level).length}</span></button>)}</div>
+          {result.findings.filter(finding => findingFilter === "all" || finding.level === findingFilter).map((finding, index) => <div className="findingRow" key={`${finding.title}-${finding.file ?? index}`}>
             <span className={`findingLevel ${finding.level}`}>{finding.level === "attention" ? "Priority" : finding.level === "review" ? "Review" : "Info"}</span>
             <strong>{finding.title}</strong><p>{finding.detail}</p>
             {finding.file && <code>{finding.file}</code>}
