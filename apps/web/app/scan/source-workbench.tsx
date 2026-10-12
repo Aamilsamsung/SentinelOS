@@ -1,9 +1,20 @@
 "use client";
 
 import { ChangeEvent, DragEvent, FormEvent, useState } from "react";
-import type { InspectionReport } from "../../lib/source-inspection";
+import type { InspectionFinding, InspectionReport } from "../../lib/source-inspection";
 
 type Mode = "github" | "zip";
+type FindingCategory = "all" | "authentication" | "oauth" | "api" | "security" | "project";
+const categoryLabels: Record<FindingCategory, string> = { all: "All areas", authentication: "Login", oauth: "Google / OAuth", api: "APIs", security: "Security", project: "Project" };
+function categoryOf(finding: InspectionFinding): Exclude<FindingCategory, "all"> {
+  if (finding.category) return finding.category;
+  if (/oauth|google|redirect|callback/i.test(finding.title)) return "oauth";
+  if (/authentication|login|session|token|jwt/i.test(finding.title)) return "authentication";
+  if (/api|webhook|cors|tls|http/i.test(finding.title)) return "api";
+  if (/secret|credential|security|execution/i.test(finding.title)) return "security";
+  return "project";
+}
+
 
 export function SourceWorkbench() {
   const [mode, setMode] = useState<Mode>("github");
@@ -14,6 +25,7 @@ export function SourceWorkbench() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<InspectionReport | null>(null);
   const [findingFilter, setFindingFilter] = useState<"all" | "attention" | "review" | "info">("all");
+  const [categoryFilter, setCategoryFilter] = useState<FindingCategory>("all");
 
   function chooseFile(selected?: File | null) {
     setError("");
@@ -64,6 +76,7 @@ export function SourceWorkbench() {
       const payload = await response.json() as { data?: InspectionReport; error?: string };
       if (!response.ok || !payload.data) throw new Error(payload.error || "Inspection could not be completed.");
       setFindingFilter("all");
+      setCategoryFilter("all");
       setResult(payload.data);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Inspection failed. Please try again.");
@@ -170,11 +183,14 @@ export function SourceWorkbench() {
         </div>
         <div className="reportCard"><h3>Findings to review</h3>
           <p className="findingsExplanation">Prioritized code signals, not confirmed runtime failures. Open each referenced file and verify the actual behavior.</p>
+          <div className="categoryFilters" aria-label="Filter by issue area">{(["all", "authentication", "oauth", "api", "security", "project"] as const).map(category => <button key={category} type="button" aria-pressed={categoryFilter === category} className={categoryFilter === category ? "active" : ""} onClick={() => setCategoryFilter(category)}>{categoryLabels[category]} <span>{category === "all" ? result.findings.length : result.findings.filter(f => categoryOf(f) === category).length}</span></button>)}</div>
           <div className="findingFilters" aria-label="Filter findings">{(["all", "attention", "review", "info"] as const).map(level => <button key={level} type="button" aria-pressed={findingFilter === level} className={findingFilter === level ? "active" : ""} onClick={() => setFindingFilter(level)}>{level === "all" ? "All" : level === "attention" ? "Priority" : level === "review" ? "Review" : "Info"} <span>{level === "all" ? result.findings.length : result.findings.filter(item => item.level === level).length}</span></button>)}</div>
-          {result.findings.filter(finding => findingFilter === "all" || finding.level === findingFilter).map((finding, index) => <div className="findingRow" key={`${finding.title}-${finding.file ?? index}`}>
+          {!result.findings.some(finding => (findingFilter === "all" || finding.level === findingFilter) && (categoryFilter === "all" || categoryOf(finding) === categoryFilter)) && <p className="noMatchingFindings">No findings match these filters. This does not mean the integration is verified.</p>}
+          {result.findings.filter(finding => (findingFilter === "all" || finding.level === findingFilter) && (categoryFilter === "all" || categoryOf(finding) === categoryFilter)).sort((a, b) => ({ attention: 0, review: 1, info: 2 }[a.level] - { attention: 0, review: 1, info: 2 }[b.level])).map((finding, index) => <div className="findingRow" key={`${finding.title}-${finding.file ?? index}`}>
             <span className={`findingLevel ${finding.level}`}>{finding.level === "attention" ? "Priority" : finding.level === "review" ? "Review" : "Info"}</span>
-            <strong>{finding.title}</strong><p>{finding.detail}</p>
-            {finding.file && <code>{finding.file}</code>}
+            <span className="findingCategory">{categoryLabels[categoryOf(finding)]}</span><strong>{finding.title}</strong><p>{finding.detail}</p>
+            {finding.file && <code>{finding.file}{finding.line ? `:${finding.line}` : ""}</code>}
+            {finding.recommendation && <div className="findingFix"><strong>Recommended verification</strong><p>{finding.recommendation}</p></div>}
           </div>)}
         </div>
       </div>
