@@ -288,3 +288,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{o
 .scanHero p a{color:#a0eebb;text-decoration:underline}
 @media(max-width:1120px){.integrationLayout{grid-template-columns:1fr}.integrationSide{grid-row:1}}
 @media(max-width:650px){.integrationTiles{grid-template-columns:1fr}.integrationFormPanel,.integrationSide{padding:20px}.providerTile{min-height:unset}}
+
+/* Source inspection report actions */
+.resultActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.reportDownload{background:#163e2a;border:1px solid #4b9367;color:#c5f8d8;font-weight:700;cursor:pointer;padding:10px 14px}
+.reportDownload:hover{background:#205c3b}
+@media(max-width:700px){.resultActions{justify-content:flex-start}}
