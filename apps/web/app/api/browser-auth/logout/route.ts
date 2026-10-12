@@ -7,6 +7,10 @@ export async function POST(request: Request) {
   if (origin && origin !== new URL(request.url).origin) {
     return NextResponse.json({ error: "Cross-origin logout rejected" }, { status: 403 });
   }
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {
+    return NextResponse.json({ error: "Cross-site logout rejected" }, { status: 403 });
+  }
   const csrfHeader = request.headers.get("x-csrf-token");
   const cookieHeader = request.headers.get("cookie") ?? "";
   const csrfCookie = cookieHeader.split(";").map((value) => value.trim()).find((value) => value.startsWith("sentinelos_csrf="))?.slice("sentinelos_csrf=".length);
