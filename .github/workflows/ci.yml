@@ -62,8 +62,14 @@ jobs:
             cat /tmp/sentinel-web-smoke.log
             exit 1
           fi
-          result="$(curl -fsS -X POST http://127.0.0.1:3029/api/source-inspection -H 'content-type: application/zip' -H 'origin: http://127.0.0.1:3029' -H 'x-source-filename: sentinel-inspect-smoke.zip' --data-binary @/tmp/sentinel-inspect-smoke.zip)"
+          result="$(curl --fail-with-body -sS -X POST http://127.0.0.1:3029/api/source-inspection -H 'content-type: application/zip' -H 'origin: http://127.0.0.1:3029' -H 'x-source-filename: sentinel-inspect-smoke.zip' --data-binary @/tmp/sentinel-inspect-smoke.zip)"
           printf '%s' "$result" | node -e 'const fs=require("fs"); const report=JSON.parse(fs.readFileSync(0,"utf8")).data; if (!report || report.kind!=="zip" || report.filesDiscovered!==3 || report.filesInspected!==3 || !report.checks.some(c=>c.label==="Documentation"&&c.passed)) { console.error("Unexpected inspection report"); process.exit(1) } console.log("ZIP inspection returned a valid bounded static report")'
+          blocked="$(curl -sS -o /tmp/scan-rejected.json -w '%{http_code}' -X POST http://127.0.0.1:3029/api/source-inspection -H 'content-type: application/zip' -H 'origin: https://untrusted.example' --data-binary @/tmp/sentinel-inspect-smoke.zip)"
+          if [ "$blocked" != "403" ]; then
+            cat /tmp/scan-rejected.json
+            echo "Cross-origin ZIP inspection unexpectedly accepted"
+            exit 1
+          fi
       - name: Validate Docker Compose
         run: docker compose config --quiet
       - name: Build API Docker image
