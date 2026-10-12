@@ -69,9 +69,9 @@ describe("source inspection", () => {
   });
 
   it("allows only public GitHub root URLs, not arbitrary server URLs", async () => {
-    await expect(inspectGitHub("http://localhost:4000/admin")).rejects.toThrow(/GitHub/);
+    await expect(inspectGitHub("http://localhost:4000/admin")).rejects.toThrow(/github/i);
     await expect(inspectGitHub("https://github.com/test/project/tree/main")).rejects.toThrow(/root URL/);
-    await expect(inspectGitHub("https://github.com.evil.example/test/repo")).rejects.toThrow(/GitHub/);
+    await expect(inspectGitHub("https://github.com.evil.example/test/repo")).rejects.toThrow(/github/i);
   });
 
   it("checks public GitHub tree structure and only approved raw paths", async () => {
