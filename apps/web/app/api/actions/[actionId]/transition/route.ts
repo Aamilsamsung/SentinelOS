@@ -22,6 +22,10 @@ export async function POST(request: Request, context: { params: Promise<{ action
     return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
 
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("application/json")) {
+    return NextResponse.json({ error: "JSON content type required" }, { status: 415 });
+  }
   const { actionId } = await context.params;
   const body = await request.text();
   const upstream = await fetch(`${baseUrl}/v1/actions/${encodeURIComponent(actionId)}/transitions`, {
