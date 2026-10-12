@@ -36,6 +36,34 @@ jobs:
       - run: npm run db:migrate --workspace=@sentinelos/api
       - run: npm test
       - run: npm run build
+      - name: Smoke test ZIP inspection through live web server
+        env:
+          SENTINELOS_PREVIEW_MODE: "true"
+        run: |
+          python3 - <<'PY'
+          from zipfile import ZipFile, ZIP_DEFLATED
+          with ZipFile("/tmp/sentinel-inspect-smoke.zip", "w", ZIP_DEFLATED) as archive:
+              archive.writestr("README.md", "Sample source code health check")
+              archive.writestr("package.json", '{"name":"sample-project"}')
+              archive.writestr("src/example.ts", "export const healthy = true;")
+          PY
+          npm run start --workspace=@sentinelos/web -- -p 3029 > /tmp/sentinel-web-smoke.log 2>&1 &
+          web_pid="$!"
+          trap 'kill "$web_pid" 2>/dev/null || true' EXIT
+          web_ready=false
+          for attempt in {1..25}; do
+            if curl -fsS http://127.0.0.1:3029/login > /dev/null; then
+              web_ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$web_ready" != "true" ]; then
+            cat /tmp/sentinel-web-smoke.log
+            exit 1
+          fi
+          result="$(curl -fsS -X POST http://127.0.0.1:3029/api/source-inspection -H 'content-type: application/zip' -H 'origin: http://127.0.0.1:3029' -H 'x-source-filename: sentinel-inspect-smoke.zip' --data-binary @/tmp/sentinel-inspect-smoke.zip)"
+          printf '%s' "$result" | node -e 'const fs=require("fs"); const report=JSON.parse(fs.readFileSync(0,"utf8")).data; if (!report || report.kind!=="zip" || report.filesDiscovered!==3 || report.filesInspected!==3 || !report.checks.some(c=>c.label==="Documentation"&&c.passed)) { console.error("Unexpected inspection report"); process.exit(1) } console.log("ZIP inspection returned a valid bounded static report")'
       - name: Validate Docker Compose
         run: docker compose config --quiet
       - name: Build API Docker image
