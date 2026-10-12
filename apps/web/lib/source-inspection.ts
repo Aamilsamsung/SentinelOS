@@ -22,7 +22,7 @@ export type InspectionReport = {
 };
 
 type FileEntry = { path: string; size: number; content?: string };
-const MAX_FILES = 24;
+const MAX_FILES = 36;
 const MAX_FILE_BYTES = 128 * 1024;
 const MAX_ZIP_BYTES = 5 * 1024 * 1024;
 const MAX_PATHS = 5000;
@@ -41,7 +41,8 @@ function prioritise(path: string): number {
   if (/\.github\/workflows\/.*\.ya?ml$/i.test(path)) return 1;
   if (/(^|\/)(README\.md|\.env\.example)$/i.test(path)) return 2;
   if (/(^|\/)(__tests__|test|tests|spec)(\/|\.)|\.(test|spec)\.[jt]sx?$/i.test(path)) return 3;
-  return 4;
+  if (/(^|\/)(auth|login|signin|sign-in|oauth|callback|api|integrations?|middleware|security)(\/|\.|-)|(?:auth|oauth|login|callback|integrations?)\.[jt]sx?$/i.test(path)) return 4;
+  return 5;
 }
 function candidate(path: string): boolean {
   return safePath(path) && (codeExt.test(path) || /(^|\/)(Dockerfile|Makefile|\.env\.example|requirements\.txt|go\.mod|Cargo\.toml)$/.test(path));
@@ -128,6 +129,28 @@ export function createInspectionReport(
     }
     if (/(?:axios|fetch)\s*\([^)]*(?:process\.env\.NEXT_PUBLIC_[A-Z_]*(?:SECRET|TOKEN|KEY)|import\.meta\.env\.VITE_[A-Z_]*(?:SECRET|TOKEN|KEY))/i.test(sourceText)) {
       emit("review", "Client-exposed API credential reference", "A public-prefixed environment variable resembling a credential was found in an API call. Verify that no private keys are bundled into the browser.");
+    }
+    if (authRelevant && /(?:signInWithPopup|signInWithRedirect|GoogleAuthProvider|passport-google-oauth|provider\s*:\s*["']google)/i.test(sourceText)
+      && !/(?:state|nonce|code_verifier|pkce|csrf)/i.test(sourceText)) {
+      emit("review", "Google login flow needs state and session review", "Google login is referenced, but anti-forgery and token-validation safeguards were not evident in this sampled file. Verify OAuth state/nonce or PKCE, redirect allowlists, ID-token verification and session creation in the complete implementation.");
+    }
+    if (authRelevant && /(?:jwt\.decode\s*\(|jwtDecode\s*\(|decodeJwt\s*\()/i.test(sourceText)
+      && !/(?:jwt\.verify\s*\(|jwtVerify\s*\(|verifyIdToken\s*\(|verifyToken\s*\()/i.test(sourceText)) {
+      emit("attention", "Token decoding without verification pattern", "A token decode call was found without a corresponding verification call in this sampled file. Confirm signatures, issuer, audience and expiry are verified server-side before trusting claims.");
+    }
+    if (/(?:fetch\s*\(|axios\.(?:get|post|put|patch|delete)\s*\()/i.test(sourceText)
+      && /(?:Authorization|Bearer\s|api[_-]?key|access[_-]?token)/i.test(sourceText)
+      && /(?:NEXT_PUBLIC_[A-Z0-9_]*(?:SECRET|PRIVATE|TOKEN)|VITE_[A-Z0-9_]*(?:SECRET|PRIVATE|TOKEN))/i.test(sourceText)) {
+      emit("attention", "Potential credential exposure in API integration", "A credential-like public environment variable appears near an authenticated API request. Verify no private provider secrets are bundled into client code.");
+    }
+    if (/(?:fetch\s*\(|axios\.)/i.test(sourceText) && /(?:\.json\s*\(\s*\)|response\.data)/i.test(sourceText)
+      && /(?:integration|provider|api|webhook)/i.test(file.path)
+      && !/(?:response\.ok|\.catch\s*\(|try\s*\{|catch\s*\(|status\s*[!=]==?\s*2\d\d)/i.test(sourceText)) {
+      emit("review", "API integration error handling not evident", "A third-party/API request is present, but response status or exception handling was not evident in this sampled file. Review failed requests, timeouts, retries and error feedback.");
+    }
+    if (/(?:cors\s*\(\s*\{[^}]*origin\s*:\s*["']\*["']|Access-Control-Allow-Origin["']?\s*[:,]\s*["']\*["'])/i.test(sourceText)
+      && /(?:credentials\s*:\s*true|Access-Control-Allow-Credentials)/i.test(sourceText)) {
+      emit("attention", "Potentially unsafe CORS configuration", "Wildcard cross-origin access appears alongside credential handling. Verify the effective CORS policy for authenticated endpoints.");
     }
     if (/\b(TODO|FIXME)\b/.test(sourceText) && matchedRules < 12) {
       findings.push({ level: "info", title: "Outstanding work marker", file: file.path,
