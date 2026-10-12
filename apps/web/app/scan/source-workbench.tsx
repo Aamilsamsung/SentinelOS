@@ -109,6 +109,7 @@ export function SourceWorkbench() {
             autoComplete="url" value={url} maxLength={500} required
             onChange={event => { setUrl(event.target.value); setResult(null); }} />
           <small>Read-only scan of a public repository. Private repositories and GitHub account access aren't connected yet.</small>
+          <button type="button" className="exampleRepoButton" onClick={() => { setUrl("https://github.com/vercel/next.js"); setResult(null); setError(""); }}>Try an example public repository ↗</button>
         </div> : <div className="inputSection">
           <label htmlFor="zip-file">Project archive</label>
           <label className={dragging ? "dropZone dragging" : "dropZone"}
