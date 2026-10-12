@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { isPreviewMode, previewActions, previewActivity, previewIncidents, previewInvestigations, previewSummary } from "./preview-data";
 
 export type DashboardSummary = {
   openIncidents: number;
@@ -8,6 +9,7 @@ export type DashboardSummary = {
 };
 
 export async function fetchDashboardSummary(): Promise<DashboardSummary | null> {
+  if (isPreviewMode) return previewSummary;
   const baseUrl = process.env.SENTINELOS_API_URL;
   const cookieStore = await cookies();
   const organizationId = cookieStore.get("sentinelos_organization")?.value;
@@ -39,6 +41,7 @@ export type ActivityItem = {
 };
 
 export async function fetchActivity(): Promise<ActivityItem[] | null> {
+  if (isPreviewMode) return previewActivity;
   const baseUrl = process.env.SENTINELOS_API_URL;
   const cookieStore = await cookies();
   const organizationId = cookieStore.get("sentinelos_organization")?.value;
@@ -75,6 +78,7 @@ async function apiConfig() {
 }
 
 export async function fetchIncidents(): Promise<Incident[] | null> {
+  if (isPreviewMode) return previewIncidents;
   const config = await apiConfig();
   if (!config) return null;
   const response = await fetch(`${config.baseUrl}/v1/incidents`, {
@@ -115,5 +119,5 @@ export type ActionListItem = {
   verification_status: string | null; verification_detail: string | null; incident_title: string;
 };
 
-export const fetchInvestigations = () => fetchProtected<InvestigationListItem[]>("/v1/investigations");
-export const fetchActions = () => fetchProtected<ActionListItem[]>("/v1/actions");
+export const fetchInvestigations = () => isPreviewMode ? Promise.resolve(previewInvestigations) : fetchProtected<InvestigationListItem[]>("/v1/investigations");
+export const fetchActions = () => isPreviewMode ? Promise.resolve(previewActions) : fetchProtected<ActionListItem[]>("/v1/actions");
