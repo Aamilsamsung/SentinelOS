@@ -73,6 +73,18 @@ describe("source inspection", () => {
     expect(report.findings.every(f => !/confirmed live/i.test(f.detail))).toBe(true);
   });
 
+  it("flags OAuth callback configuration and swallowed API failures as review items", () => {
+    const files = [
+      { path: "src/auth/google.ts", size: 300, content: 'const GOOGLE_REDIRECT_URI = "http://localhost:3000/auth/callback"; verifyIdToken(token); const provider = "google";' },
+      { path: "src/integrations/provider.ts", size: 100, content: 'try { await fetch(endpoint) } catch (error) {}' }
+    ];
+    const report = createInspectionReport("zip", "auth-review.zip", "sample", files, files);
+    expect(report.findings.some(f => f.title === "Localhost OAuth callback or configuration")).toBe(true);
+    expect(report.findings.some(f => f.title === "OAuth token validation configuration not evident")).toBe(true);
+    expect(report.findings.some(f => f.title === "API errors may be silently ignored")).toBe(true);
+    expect(report.findings.every(f => /review|not found|marker/i.test(f.title + " " + f.detail) || f.level !== "attention")).toBe(true);
+  });
+
   it("refuses malformed archives and skips traversal entries", () => {
     expect(() => inspectZip(Buffer.from("not-a-zip"), "bad.zip")).toThrow(/ZIP/);
     const archive = makeZip([{ name: "../outside.ts", body: "eval('unsafe')" }, { name: "src/normal.ts", body: "export {}" }]);
