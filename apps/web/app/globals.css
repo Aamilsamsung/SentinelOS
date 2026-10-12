@@ -24,3 +24,8 @@
   .grid{grid-template-columns:1fr}
   .content{padding:20px}
 }
+
+.previewNotice{display:flex;flex-direction:column;gap:5px;padding:13px 16px;border:1px solid #5c5531;border-radius:10px;background:#211f11;margin:12px 0 24px;color:#efe5ad}
+.previewNotice strong{font-size:13px}
+.previewNotice span{font-size:12px;line-height:1.5;color:#cfc7a1}
+.previewTag{display:inline-flex;align-items:center;padding:10px 14px;border:1px solid #5c5531;border-radius:8px;color:#efe5ad;background:#211f11;font-size:12px;white-space:nowrap}
