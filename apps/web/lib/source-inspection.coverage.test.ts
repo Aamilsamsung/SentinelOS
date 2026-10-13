@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
 import { createInspectionReport } from "./source-inspection";
 
 describe("source inspection coverage", () => {
@@ -9,17 +10,17 @@ describe("source inspection coverage", () => {
     ];
     const sampled = [{ ...allFiles[0], content: '{"name":"test"}' }];
     const report = createInspectionReport("zip", "sample.zip", "uploaded", allFiles, sampled, true);
-    expect(report.partial).toBe(true);
-    expect(report.filesDiscovered).toBe(2);
-    expect(report.filesInspected).toBe(1);
-    expect(report.sampledPaths).toEqual(["package.json"]);
+    assert.equal(report.partial, true);
+    assert.equal(report.filesDiscovered, 2);
+    assert.equal(report.filesInspected, 1);
+    assert.deepEqual(report.sampledPaths, ["package.json"]);
   });
 
   it("never treats unsampled source as inspected", () => {
     const allFiles = [{ path: "src/auth.ts", size: 1024 }];
     const report = createInspectionReport("github", "example", "github", allFiles, [], true);
-    expect(report.filesDiscovered).toBe(1);
-    expect(report.filesInspected).toBe(0);
+    assert.equal(report.filesDiscovered, 1);
+    assert.equal(report.filesInspected, 0);
     expect(report.partial).toBe(true);
   });
 });
