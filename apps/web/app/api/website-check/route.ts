@@ -30,6 +30,10 @@ function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status, headers: { "cache-control": "no-store" } });
 }
 export async function POST(request: Request) {
+  // Disabled until authenticated ownership checks and network-level egress filtering exist.
+  if (process.env.SENTINELOS_WEBSITE_CHECK_ENABLED !== "true") {
+    return json({ error: "Website checking is unavailable until target verification and network protections are configured." }, 503);
+  }
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return json({ error: "Cross-origin requests are not allowed." }, 403);
   const site = request.headers.get("sec-fetch-site");
