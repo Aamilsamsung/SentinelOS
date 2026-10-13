@@ -86,12 +86,12 @@ describe("source inspection", () => {
   });
 
   it("marks large source samples as partial instead of claiming full coverage", () => {
-    const archive = makeZip(Array.from({ length: 55 }, (_, index) => ({
+    const archive = makeZip(Array.from({ length: 155 }, (_, index) => ({
       name: `src/file-${String(index).padStart(2, "0")}.ts`, body: "export const value = 1;"
     })));
     const report = inspectZip(archive, "large.zip");
-    expect(report.filesDiscovered).toBe(55);
-    expect(report.filesInspected).toBe(48);
+    expect(report.filesDiscovered).toBe(155);
+    expect(report.filesInspected).toBe(128);
     expect(report.partial).toBe(true);
   });
 
