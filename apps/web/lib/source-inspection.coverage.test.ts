@@ -21,7 +21,7 @@ describe("source inspection coverage", () => {
     const report = createInspectionReport("github", "example", "github", allFiles, [], true);
     assert.equal(report.filesDiscovered, 1);
     assert.equal(report.filesInspected, 0);
-    expect(report.partial).toBe(true);
+    assert.equal(report.partial, true);
   });
   it("reports oversized eligible files as outside inspected coverage", () => {
     const allFiles = [{ path: "src/large-auth.ts", size: 300 * 1024 }];
