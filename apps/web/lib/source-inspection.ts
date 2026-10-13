@@ -26,10 +26,10 @@ export type InspectionReport = {
 };
 
 type FileEntry = { path: string; size: number; content?: string };
-const MAX_FILES = 48;
-const MAX_FILE_BYTES = 128 * 1024;
+const MAX_FILES = 128;
+const MAX_FILE_BYTES = 256 * 1024;
 const MAX_ZIP_BYTES = 5 * 1024 * 1024;
-const MAX_PATHS = 5000;
+const MAX_PATHS = 10000;
 const codeExt = /\.(tsx?|jsx?|py|go|rs|java|rb|sql|sh|tf|ya?ml|json|toml|md|txt|vue|svelte)$/i;
 const ignoredDir = /(^|\/)(node_modules|vendor|dist|build|\.next|\.git|coverage|__pycache__)(\/|$)/i;
 
@@ -240,7 +240,7 @@ export function inspectZip(bytes: Buffer, filename: string): InspectionReport {
     const nameLength = bytes.readUInt16LE(entry.offset + 26);
     const extraLength = bytes.readUInt16LE(entry.offset + 28);
     const start = entry.offset + 30 + nameLength + extraLength;
-    if (start + entry.compressed > bytes.length || totalOutput + entry.size > 1024 * 1024) continue;
+    if (start + entry.compressed > bytes.length || totalOutput + entry.size > 8 * 1024 * 1024) continue;
     try {
       const raw = bytes.subarray(start, start + entry.compressed);
       const expanded = entry.method === 8 ? inflateRawSync(raw, { maxOutputLength: MAX_FILE_BYTES }) : raw;
