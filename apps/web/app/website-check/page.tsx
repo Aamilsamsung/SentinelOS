@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { SiteNavigation } from "../components/site-navigation";
 
 type Check = { name: string; passed: boolean; detail: string };
 type Result = { url: string; status: number; redirect: boolean; checks: Check[]; checkedAt: string; scope: string };
@@ -26,12 +27,12 @@ export default function WebsiteCheckPage() {
     finally { setBusy(false); }
   }
   return <main className="shell"><section className="content scanContent">
-    <div className="scanTopbar"><div className="breadcrumb"><Link href="/">Workspace</Link><span>/</span><Link href="/scan">Source Inspector</Link><span>/</span><strong>Website Check</strong></div></div>
+    <div className="inlineNavigation"><SiteNavigation /></div><div className="scanTopbar"><div className="breadcrumb"><Link href="/">Workspace</Link><span>/</span><Link href="/scan">Source Inspector</Link><span>/</span><strong>Website Check</strong></div></div>
     <div className="scanHero"><div className="eyebrow">PASSIVE WEBSITE INSPECTION</div>
       <h1>Inspect a live <span>website.</span></h1>
-      <p>Check HTTPS response behavior and selected security headers. This preview does not attempt login, exploitation, crawling, or active penetration testing.</p>
+      <p>Inspect HTTPS availability and response security headers. Extended browser, login, API, and vulnerability tests require verified ownership and isolated workers.</p>
     </div>
-    <section className="inspectorPanel"><div className="panelTop"><h3>Website URL</h3></div>
+    <section className="panel" style={{padding:20,marginBottom:20}}><strong>Web Inspector coverage</strong><p>Available after secure activation: HTTPS status, redirects, Content Security Policy, HSTS, MIME sniffing, and referrer policy. Planned: SSL expiry, broken links, JavaScript errors, API health, authentication, OAuth, accessibility, and safe OWASP-oriented checks.</p><p><strong>Safety status:</strong> Live requests remain disabled until ownership verification and network-level SSRF protection are installed.</p></section><section className="inspectorPanel"><div className="panelTop"><h3>Website URL</h3></div>
       <form className="inspectorForm" onSubmit={submit}>
         <div className="inputSection"><label htmlFor="website-url">Public HTTPS website</label>
           <input id="website-url" type="url" required placeholder="https://example.com" value={url} onChange={e=>setUrl(e.target.value)} />
