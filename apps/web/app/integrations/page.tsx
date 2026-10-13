@@ -3,6 +3,7 @@ import { SiteNavigation } from "../components/site-navigation";
 import { PreviewNotice } from "../components/preview-notice";
 import { isPreviewMode } from "../../lib/preview-data";
 import { IntegrationManager } from "./integration-manager";
+import { GithubCiInspector } from "./github-ci-inspector";
 
 export const metadata = {
   title: "Integrations | SentinelOS",
@@ -25,7 +26,7 @@ export default function IntegrationsPage() {
         <h1>All your signals.<br /><span>One command center.</span></h1>
         <p>Register the services you want SentinelOS to watch. Live ingestion requires a configured backend and provider-specific setup. Need a quick check instead? <Link href="/scan">Analyze a repository ↗</Link></p>
       </div>
-      <IntegrationManager preview={isPreviewMode} />
+      <GithubCiInspector /><IntegrationManager preview={isPreviewMode} />
     </section>
   </main>;
 }

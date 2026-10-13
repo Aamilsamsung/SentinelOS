@@ -26,10 +26,10 @@ export type InspectionReport = {
 };
 
 type FileEntry = { path: string; size: number; content?: string };
-const MAX_FILES = 48;
-const MAX_FILE_BYTES = 128 * 1024;
+const MAX_FILES = 128;
+const MAX_FILE_BYTES = 256 * 1024;
 const MAX_ZIP_BYTES = 5 * 1024 * 1024;
-const MAX_PATHS = 5000;
+const MAX_PATHS = 10000;
 const codeExt = /\.(tsx?|jsx?|py|go|rs|java|rb|sql|sh|tf|ya?ml|json|toml|md|txt|vue|svelte)$/i;
 const ignoredDir = /(^|\/)(node_modules|vendor|dist|build|\.next|\.git|coverage|__pycache__)(\/|$)/i;
 
@@ -240,7 +240,7 @@ export function inspectZip(bytes: Buffer, filename: string): InspectionReport {
     const nameLength = bytes.readUInt16LE(entry.offset + 26);
     const extraLength = bytes.readUInt16LE(entry.offset + 28);
     const start = entry.offset + 30 + nameLength + extraLength;
-    if (start + entry.compressed > bytes.length || totalOutput + entry.size > 1024 * 1024) continue;
+    if (start + entry.compressed > bytes.length || totalOutput + entry.size > 8 * 1024 * 1024) continue;
     try {
       const raw = bytes.subarray(start, start + entry.compressed);
       const expanded = entry.method === 8 ? inflateRawSync(raw, { maxOutputLength: MAX_FILE_BYTES }) : raw;
@@ -249,7 +249,7 @@ export function inspectZip(bytes: Buffer, filename: string): InspectionReport {
       sampled.push({ path: entry.path, size: entry.size, content: expanded.toString("utf8") });
     } catch { /* malformed, oversized or unsupported entry is never executed */ }
   }
-  return createInspectionReport("zip", filename.slice(0, 120), "Uploaded ZIP (processed in memory)", entries, sampled, sampled.length < chosen.length || entries.filter(entry => candidate(entry.path) && entry.size <= MAX_FILE_BYTES).length > chosen.length);
+  return createInspectionReport("zip", filename.slice(0, 120), "Uploaded ZIP (processed in memory)", entries, sampled, sampled.length < chosen.length || entries.some(entry => candidate(entry.path) && entry.size > MAX_FILE_BYTES) || entries.filter(entry => candidate(entry.path) && entry.size <= MAX_FILE_BYTES).length > chosen.length);
 }
 
 async function getJson(url: string): Promise<unknown> {
@@ -381,5 +381,5 @@ export async function inspectGitHub(value: string): Promise<InspectionReport> {
   }
   return createInspectionReport("github", metadata.full_name ?? `${owner}/${repository}`,
     `https://github.com/${owner}/${repository}`, allFiles, sampled,
-    Boolean(tree.truncated || tree.tree.length > MAX_PATHS || sampled.some(f => f.content === undefined) || allFiles.filter(entry => candidate(entry.path) && entry.size <= MAX_FILE_BYTES).length > chosen.length));
+    Boolean(tree.truncated || tree.tree.length > MAX_PATHS || sampled.some(f => f.content === undefined) || allFiles.some(entry => candidate(entry.path) && entry.size > MAX_FILE_BYTES) || allFiles.filter(entry => candidate(entry.path) && entry.size <= MAX_FILE_BYTES).length > chosen.length));
 }

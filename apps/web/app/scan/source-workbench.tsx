@@ -168,11 +168,11 @@ export function SourceWorkbench() {
       </div>
       <div className="resultMetrics">
         <div><strong>{result.filesDiscovered}</strong><span>Files discovered</span></div>
-        <div><strong>{result.filesInspected}</strong><span>Files sampled</span></div>
+        <div><strong>{result.filesInspected}</strong><span>Files inspected</span></div>
         <div><strong>{result.checks.filter(c => c.passed).length}/{result.checks.length}</strong><span>Project setup signals</span></div>
         <div><strong>{result.findings.filter(f => f.level !== "info").length}</strong><span>Items to review</span></div>
       </div>
-      {result.partial && <p className="partialNotice">Some content couldn't be inspected because of size, access or preview sampling limits. Findings are incomplete.</p>}
+      {result.partial && <p className="partialNotice">Coverage: {result.filesInspected} of {result.filesDiscovered} discovered files inspected. {result.filesDiscovered - result.filesInspected} files were not inspected (including unsupported, ignored, oversized, inaccessible, or sampling-limited files). Findings are incomplete.</p>}
       <div className="resultColumns">
         <div className="reportCard"><h3>Project readiness signals</h3>
           {result.checks.map(item => <div className="checkRow" key={item.label}>

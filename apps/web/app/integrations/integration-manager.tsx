@@ -6,7 +6,7 @@ import Link from "next/link";
 type Provider = "github" | "sentry" | "prometheus" | "generic_webhook";
 type Integration = { id: string; provider: Provider; name: string; status: string; last_error?: string | null; updated_at?: string };
 const providerDetails: { key: Provider; label: string; symbol: string; description: string; capability: string }[] = [
-  { key: "github", label: "GitHub", symbol: "⌁", description: "Signed deployment and deployment-status events.", capability: "Webhook ingestion implemented" },
+  { key: "github", label: "GitHub", symbol: "⌁", description: "Connect GitHub deployments; push, CI and build-failure monitoring is being added.", capability: "Signed deployment webhooks available; push/CI monitoring pending" },
   { key: "sentry", label: "Sentry", symbol: "◇", description: "Register Sentry as an observability source.", capability: "Configuration registry only" },
   { key: "prometheus", label: "Prometheus", symbol: "▤", description: "Register a metrics monitoring source.", capability: "Configuration registry only" },
   { key: "generic_webhook", label: "Generic webhook", symbol: "⎇", description: "Register a custom integration record.", capability: "Configuration registry only" }
@@ -108,7 +108,7 @@ export function IntegrationManager({ preview }: { preview: boolean }) {
           {message && <div role="status" className="integrationSuccess">{message}</div>}
           <button className="inspectButton" type="submit" disabled={preview || busy}>{busy ? "Saving…" : preview ? "Requires connected backend" : "Register integration"} <span>↗</span></button>
         </form>
-        {provider === "github" && <div className="setupNote"><strong>GitHub webhook setup</strong><p>Once you have an API deployment and organization ID, configure a GitHub webhook to <code>/v1/webhooks/github/YOUR_ORGANIZATION_ID</code> on your API domain. Select <code>deployment</code> and <code>deployment_status</code> events and enter the same shared secret. Other GitHub events are not yet ingested.</p></div>}
+        {provider === "github" && <div className="setupNote"><strong>GitHub webhook setup</strong><p>Once you have an API deployment and organization ID, configure a GitHub webhook to <code>/v1/webhooks/github/YOUR_ORGANIZATION_ID</code> on your API domain. Select <code>deployment</code> and <code>deployment_status</code> events and enter the same shared secret. Push, workflow-run, and check-run event processing is not yet implemented.</p></div>}
       </div>
     </section>
     <aside className="integrationSide">
