@@ -23,4 +23,12 @@ describe("source inspection coverage", () => {
     assert.equal(report.filesInspected, 0);
     expect(report.partial).toBe(true);
   });
+  it("reports oversized eligible files as outside inspected coverage", () => {
+    const allFiles = [{ path: "src/large-auth.ts", size: 300 * 1024 }];
+    const report = createInspectionReport("github", "example", "github", allFiles, [], true);
+    assert.equal(report.filesDiscovered, 1);
+    assert.equal(report.filesInspected, 0);
+    assert.equal(report.partial, true);
+  });
+
 });
